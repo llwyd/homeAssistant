@@ -1,19 +1,21 @@
 from flask import Flask, redirect, render_template, request, url_for
 from flask_sqlalchemy import SQLAlchemy
-from flask_basicauth import BasicAuth
-from flask_caching import Cache
-from flask_mqtt import Mqtt
+#from flask_basicauth import BasicAuth
+#from flask_caching import Cache
+#from flask_mqtt import Mqtt
 from sqlalchemy import or_
 import datetime as dt
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-import plotly.graph_objs as go
-import plotly
-from dash.dependencies import Input, Output
 import numpy as np
 import os
 
+app = Flask(__name__)
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+@app.route("/")
+def index():
+    return "Hello, World!"
 
 #def mqtt_subscribe_all():
 #    # Subscribe to defaults
