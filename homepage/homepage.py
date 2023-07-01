@@ -4,6 +4,9 @@ from flask_sqlalchemy import SQLAlchemy
 #from flask_caching import Cache
 #from flask_mqtt import Mqtt
 from sqlalchemy import or_
+from matplotlib.figure import Figure
+import base64
+from io import BytesIO
 import datetime as dt
 import numpy as np
 import os
@@ -15,9 +18,27 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 last_update = dt.datetime.now()
 site_version = 3.0
 
+def generate_graph():
+    fig = Figure()
+    ax = fig.subplots()
+    
+    f = 10 #Hz
+    fs = 11250 #Hz
+    t = np.linspace(0,fs,fs)
+    x = np.sin( 2 * np.pi * f * (1/fs)* t )
+
+    ax.plot(x)
+
+    buf = BytesIO()
+    fig.savefig(buf, format='png')
+
+    return base64.b64encode(buf.getbuffer()).decode("ascii")
+
 @app.route("/")
 def index():
+    graph_image = generate_graph()
     return render_template('index.html',
+                           graph=graph_image,
                            last_update=last_update,
                            site_version=site_version)
 
