@@ -11,6 +11,22 @@ import datetime as dt
 import numpy as np
 import os
 
+#class TemperatureData(db.Model):
+#    __tablename__ = "temperature_data"
+#    id              = db.Column(db.Integer, primary_key=True)
+#    device_id       = db.Column(db.String(32))                      # id of the unit
+#    datestamp       = db.Column(db.String(32))						# datestamp
+#    timestamp       = db.Column(db.String(32))						# timestamp
+#    temperature     = db.Column(db.String(16))                      # temperature
+#
+#class HumidityData(db.Model):
+#    __tablename__ = "humidity_data"
+#    id              = db.Column(db.Integer, primary_key=True)
+#    device_id       = db.Column(db.String(32))                      # id of the unit
+#    datestamp       = db.Column(db.String(32))						# datestamp
+#    timestamp       = db.Column(db.String(32))						# timestamp
+#    humidity        = db.Column(db.String(16))                      # humidity
+
 app = Flask(__name__)
 
 basedir = os.path.abspath(os.path.dirname(__file__))
