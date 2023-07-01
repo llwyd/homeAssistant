@@ -11,11 +11,15 @@ import os
 app = Flask(__name__)
 
 basedir = os.path.abspath(os.path.dirname(__file__))
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+
+last_update = dt.datetime.now()
+site_version = 3.0
 
 @app.route("/")
 def index():
-    return "Hello, World!"
+    return render_template('index.html',
+                           last_update=last_update,
+                           site_version=site_version)
 
 #def mqtt_subscribe_all():
 #    # Subscribe to defaults
