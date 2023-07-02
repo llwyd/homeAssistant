@@ -15,16 +15,16 @@ import os
 #    __tablename__ = "temperature_data"
 #    id              = db.Column(db.Integer, primary_key=True)
 #    device_id       = db.Column(db.String(32))                      # id of the unit
-#    datestamp       = db.Column(db.String(32))						# datestamp
-#    timestamp       = db.Column(db.String(32))						# timestamp
+#    datestamp       = db.Column(db.String(32))                     # datestamp
+#    timestamp       = db.Column(db.String(32))                     # timestamp
 #    temperature     = db.Column(db.String(16))                      # temperature
 #
 #class HumidityData(db.Model):
 #    __tablename__ = "humidity_data"
 #    id              = db.Column(db.Integer, primary_key=True)
 #    device_id       = db.Column(db.String(32))                      # id of the unit
-#    datestamp       = db.Column(db.String(32))						# datestamp
-#    timestamp       = db.Column(db.String(32))						# timestamp
+#    datestamp       = db.Column(db.String(32))                     # datestamp
+#    timestamp       = db.Column(db.String(32))                     # timestamp
 #    humidity        = db.Column(db.String(16))                      # humidity
 
 app = Flask(__name__)
@@ -112,8 +112,8 @@ def index():
 #    __tablename__ = "readings"
 #    id              = db.Column(db.Integer, primary_key=True)       #id for each record in the database
 #    deviceID        = db.Column(db.String(32))                      # id of the unit
-#    datestamp       = db.Column(db.String(32))						# datestamp
-#    timestamp       = db.Column(db.String(32))						# timestamp
+#    datestamp       = db.Column(db.String(32))                     # datestamp
+#    timestamp       = db.Column(db.String(32))                     # timestamp
 #    temperature     = db.Column(db.String(16))                      # temperature
 #
 ##   Entry point for the website
@@ -136,7 +136,7 @@ def index():
 #index_page = html.Div([
 #    html.H1(children='H O M E'),
 #    html.Div(id = 'weather-description'),
-#	dcc.Interval(   id='interval-component',
+#   dcc.Interval(   id='interval-component',
 #                    interval = 1000 * 60 * 5,
 #                    n_intervals = 0
 #                ),
@@ -145,11 +145,11 @@ def index():
 #
 #stats_page = html.Div([
 #    html.H1(children='H O M E'),
-#	html.Div(id = 'last-update'), 
+#   html.Div(id = 'last-update'), 
 #    html.Div(id = 'server-uptime'),
 #    html.Div(id = 'database-size'),
-#	html.Div(id = 'cpu-temp'),
-#	dcc.Interval(   id='interval-component',
+#   html.Div(id = 'cpu-temp'),
+#   dcc.Interval(   id='interval-component',
 #                    interval = 1000 * 60 * 5,
 #                    n_intervals = 0
 #                ),
@@ -157,11 +157,11 @@ def index():
 #
 #live_page = html.Div([
 #    html.H1(children='H O M E'),
-#	html.Div(id = 'inside-temp'), 
-#	html.Div(id = 'outside-temp'), 
-#	html.Div(id = 'outside-desc'), 
-#	html.Div(id = 'daemon-version'), 
-#	dcc.Interval(   id='interval-component',
+#   html.Div(id = 'inside-temp'), 
+#   html.Div(id = 'outside-temp'), 
+#   html.Div(id = 'outside-desc'), 
+#   html.Div(id = 'daemon-version'), 
+#   dcc.Interval(   id='interval-component',
 #                    interval = 1000 * 60 * 5,
 #                    n_intervals = 0
 #                ),
@@ -172,17 +172,17 @@ def index():
 #def update_uptime(n):
 #    if( cache.get("weather_description") is not None):
 #        weather_description = cache.get("weather_description")
-#        return [ html.Span("Weather: " + str(weather_description))]	
+#        return [ html.Span("Weather: " + str(weather_description))]    
 #    else:
-#        return [ html.Span("Weather: No idea :(")]	
+#        return [ html.Span("Weather: No idea :(")] 
 #
 ##   Temperature graph
 #@app.callback(Output('static-temp-graph', 'figure'),[Input('interval-component','n_intervals')])
 #def static_temp_graph(value):
-#    todays_date			= dt.datetime.now().strftime('%Y-%m-%d')
-#    yesterdays_date		= (dt.datetime.now() - dt.timedelta(days=1)).strftime('%Y-%m-%d') 
+#    todays_date            = dt.datetime.now().strftime('%Y-%m-%d')
+#    yesterdays_date        = (dt.datetime.now() - dt.timedelta(days=1)).strftime('%Y-%m-%d') 
 #
-#    yesterdays_time		= (dt.datetime.now() - dt.timedelta(days=1)) 
+#    yesterdays_time        = (dt.datetime.now() - dt.timedelta(days=1)) 
 #    
 #    todays_data = db.session.query( Readings ).filter( or_(Readings.datestamp == todays_date, Readings.datestamp == yesterdays_date) ).all()
 #    data = {
@@ -218,7 +218,7 @@ def index():
 #            {'x': data['d'], 'y': data['c'], 'type': 'line', 'name': 'Bedroom'}
 #        ],
 #        'layout': {
-#			'height': 700,
+#           'height': 700,
 #            'plot_bgcolor': 'rgba(0,0,0,0)',
 #            'paper_bgcolor': 'rgba(0,0,0,0)',
 #            'legend':dict(font=dict(color='#386ddb')),
@@ -247,18 +247,18 @@ def index():
 #def update_inside_temp(n):
 #    if( cache.get("inside_temp") is not None):
 #        inside_temp = cache.get("inside_temp")
-#        return [ html.Span("inside_temp: " + str(inside_temp) + " C")]	
+#        return [ html.Span("inside_temp: " + str(inside_temp) + " C")] 
 #    else:
-#        return [ html.Span("inside_temp: ????")]	
+#        return [ html.Span("inside_temp: ????")]   
 #
 ## daemon-version
 #@app.callback(Output('daemon-version', 'children'),[Input('interval-component','n_intervals')])
 #def update_daemon_version(n):
 #    if( cache.get("daemon_version") is not None):
 #        daemon_version = cache.get("daemon_version")
-#        return [ html.Span("daemon_version: " + str(daemon_version))]	
+#        return [ html.Span("daemon_version: " + str(daemon_version))]  
 #    else:
-#        return [ html.Span("daemon_version: ????")]	
+#        return [ html.Span("daemon_version: ????")]    
 #
 #
 ## daemon-location
@@ -266,9 +266,9 @@ def index():
 #def update_daemon_location(n):
 #    if( cache.get("daemon_location") is not None):
 #        daemon_location = cache.get("daemon_location")
-#        return [ html.Span("Location: " + str(daemon_location))]	
+#        return [ html.Span("Location: " + str(daemon_location))]   
 #    else:
-#        return [ html.Span("Location: ????")]	
+#        return [ html.Span("Location: ????")]  
 #
 ## A bug, this callback DOES NOT call, even with connect_async=True
 #@mqtt.on_connect()
@@ -283,7 +283,7 @@ def index():
 #def database_update(name, temperature):
 #    datestamp = dt.datetime.now().strftime('%Y-%m-%d')
 #    timestamp = dt.datetime.now().strftime('%H:%M')
-#    reading = Readings(	deviceID = name, datestamp = datestamp, timestamp = timestamp, temperature	= temperature)
+#    reading = Readings(    deviceID = name, datestamp = datestamp, timestamp = timestamp, temperature  = temperature)
 #    db.session.add(reading)
 #    db.session.commit()
 #
