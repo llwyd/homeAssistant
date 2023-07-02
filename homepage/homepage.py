@@ -34,7 +34,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 last_update = dt.datetime.now()
 site_version = 3.0
 
-def generate_graph():
+def generate_test_graph():
     fig = Figure()
     ax = fig.subplots()
     
@@ -42,8 +42,17 @@ def generate_graph():
     fs = 11250 #Hz
     t = np.linspace(0,fs,fs)
     x = np.sin( 2 * np.pi * f * (1/fs)* t )
+    y = np.sin( (2 * np.pi * f * (1/fs)* t) + (np.pi/3) )
+    z = np.sin( (2 * np.pi * f * (1/fs)* t) + ((2*np.pi)/3) )
 
-    ax.plot(x)
+    ax.plot(x, label='Sine 1')
+    ax.plot(y, label='Sine 2')
+    ax.plot(z, label='Sine 3')
+
+    ax.set_title('Sine waves')
+    ax.set_xlabel('Samples')
+    ax.set_ylabel('Amplitude')
+    ax.legend()
 
     buf = BytesIO()
     fig.savefig(buf, format='png')
@@ -52,7 +61,7 @@ def generate_graph():
 
 @app.route("/")
 def index():
-    graph_image = generate_graph()
+    graph_image = generate_test_graph()
     return render_template('index.html',
                            graph=graph_image,
                            last_update=last_update,
