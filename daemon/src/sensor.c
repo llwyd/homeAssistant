@@ -39,7 +39,7 @@ void Sensor_Init( void )
 
 void Sensor_Read( void )
 {
-    uint32_t file = open( device, O_RDWR );
+    int file = open( device, O_RDWR );
     uint8_t data[2] = { 0x00 };
     uint8_t reg = 0x05;
 

@@ -31,7 +31,7 @@ typedef union
 
 typedef struct mqtt_subs_t
 {
-    uint8_t * name;
+    char * name;
     mqtt_type_t format;
     void (*sub_fn)( mqtt_data_t* );
 } mqtt_subs_t;

@@ -22,12 +22,13 @@
 #include "state.h"
 #include "mqtt.h"
 #include "sensor.h"
+#include "timestamp.h"
 
 #define NUM_SUBS ( 1U )
 
 #define SIGNALS(SIG ) \
     SIG( Tick ) \
-    SIG( MQTT_RECV ) \
+    SIG( MessageReceived ) \
     SIG( Heartbeat ) \
     SIG( UpdateHomepage ) \
 
@@ -38,7 +39,6 @@ static int mqtt_sock;
 static struct pollfd mqtt_poll;
 static char * broker_ip;
 static char * client_name;
-static int success_subs;
 
 void Daemon_OnBoardLED( mqtt_data_t * data );
 void Heartbeat( void );
@@ -100,6 +100,7 @@ void Flush( fifo_base_t * const base )
 
 state_ret_t State_Connect( state_t * this, event_t s )
 {
+    TimeStamp_Print();
     STATE_DEBUG( s );
     state_ret_t ret;
     switch( s )
@@ -117,7 +118,7 @@ state_ret_t State_Connect( state_t * this, event_t s )
             }
             ret = HANDLED();
             break;
-        case EVENT( MQTT_RECV ):
+        case EVENT( MessageReceived ):
             
             if( MQTT_Receive() )
             {
@@ -150,6 +151,7 @@ state_ret_t State_Connect( state_t * this, event_t s )
 
 state_ret_t State_Subscribe( state_t * this, event_t s )
 {
+    TimeStamp_Print();
     STATE_DEBUG( s );
     state_ret_t ret;
     switch( s )
@@ -167,7 +169,7 @@ state_ret_t State_Subscribe( state_t * this, event_t s )
         case EVENT( Exit ):
             ret = HANDLED();
             break;
-        case EVENT( MQTT_RECV ):
+        case EVENT( MessageReceived ):
             if( MQTT_Receive() )
             {
                 if( MQTT_AllSubscribed() )
@@ -204,6 +206,7 @@ state_ret_t State_Subscribe( state_t * this, event_t s )
 
 state_ret_t State_Idle( state_t * this, event_t s )
 {
+    TimeStamp_Print();
     STATE_DEBUG( s );
     state_ret_t ret;
     switch( s )
@@ -239,7 +242,7 @@ state_ret_t State_Idle( state_t * this, event_t s )
                 }
             }
             break;
-        case EVENT( MQTT_RECV ):
+        case EVENT( MessageReceived ):
             
             if( MQTT_Receive() )
             {
@@ -274,7 +277,7 @@ void RefreshEvents( event_fifo_t * events )
     static struct timespec last_nano_tick;
 
     timespec_get( &current_nano_tick, TIME_UTC );
-    if( ( current_nano_tick.tv_nsec - last_nano_tick.tv_nsec ) > 500000000UL )
+    if( (unsigned long)( current_nano_tick.tv_nsec - last_nano_tick.tv_nsec ) > 500000000UL )
     {
         last_nano_tick = current_nano_tick;
         FIFO_Enqueue( events, EVENT( Heartbeat ) );
@@ -286,7 +289,7 @@ void RefreshEvents( event_fifo_t * events )
 
     if( rv & POLLIN )
     {
-        FIFO_Enqueue( events, EVENT( MQTT_RECV ) );
+        FIFO_Enqueue( events, EVENT( MessageReceived ) );
     }
 
     /* Check whether Tick has Elapsed */
@@ -378,7 +381,7 @@ bool InitDaemon( int argc, char ** argv )
     bool name_found = false;
     int input_flags;
 
-    while( ( input_flags = getopt( argc, argv, "b:c:" ) ) != -1U )
+    while( ( input_flags = getopt( argc, argv, "b:c:" ) ) != -1 )
     {
         switch( input_flags )
         {
@@ -405,8 +408,9 @@ bool InitDaemon( int argc, char ** argv )
     return success;
 }
 
-uint8_t main( int argc, char ** argv )
+int main( int argc, char ** argv )
 {
+    (void)TimeStamp_Generate();
     bool success = InitDaemon( argc, argv );
 
     if( success )
