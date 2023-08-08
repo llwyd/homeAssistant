@@ -20,9 +20,10 @@ daemon/Makefile
 
 daemon/common/mqtt.o
 
-*.cmake
+#*.cmake
 *.swp
 
+daemon/cmake_install.cmake
 daemon/mqtt/localdata.h
 daemon/mqtt/m
 
@@ -35,3 +36,10 @@ homepage/__pycache__/*
 firmware/node/user_config.h
 firmware/node/node
 
+*.elf
+*.hex
+
+common/bme280.c
+common/bme280.h
+common/bme280_defs.h
+common/secret_keys.h

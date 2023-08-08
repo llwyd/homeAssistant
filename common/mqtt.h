@@ -4,14 +4,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
-#include <netdb.h>
-#include <sys/types.h>
-#include <sys/poll.h>
-#include <sys/socket.h>
 #include <stdbool.h>
 #include <string.h>
-#include <time.h>
-#include <unistd.h>
+#include "fifo_base.h"
 
 typedef enum mqtt_type_t
 {
@@ -36,13 +31,28 @@ typedef struct mqtt_subs_t
     void (*sub_fn)( mqtt_data_t* );
 } mqtt_subs_t;
 
+typedef struct
+{
+    char * client_name;
+    bool (*send)(uint8_t * buffer, uint16_t len );
+    bool (*recv)(uint8_t * buffer, uint16_t len );
+    mqtt_subs_t * subs;
+    uint16_t num_subs;
+}
+mqtt_t;
+
+/* Rewrite */
+extern void MQTT_Init( mqtt_t * mqtt );
+extern bool MQTT_Connect( mqtt_t * mqtt );
+extern bool MQTT_Subscribe( mqtt_t * mqtt );
+extern bool MQTT_Publish( mqtt_t * mqtt, char * topic, char * data);
+extern bool MQTT_HandleMessage( mqtt_t * mqtt, uint8_t * buffer);
+extern bool MQTT_AllSubscribed( mqtt_t * mqtt );
+
+/* Legacy stuff */
 extern bool MQTT_Receive( void );
 extern bool MQTT_EncodeAndPublish( char * name, mqtt_type_t format, void * data );
-extern void MQTT_Init( char * ip, char * name, mqtt_subs_t * subscriptions, uint8_t number_subs );
-extern bool MQTT_Connect( void );
-extern bool MQTT_Subscribe( void );
 extern bool MQTT_MessageReceived(void);
 extern void MQTT_CreatePoll(void);
-bool MQTT_AllSubscribed( void );
 
 #endif /* _MQTT_H_ */

@@ -23,6 +23,8 @@
 #include "mqtt.h"
 #include "sensor.h"
 #include "timestamp.h"
+#include "events.h"
+#include "timer.h"
 
 #define NUM_SUBS ( 1U )
 
@@ -35,10 +37,13 @@
 GENERATE_SIGNALS( SIGNALS );
 GENERATE_SIGNAL_STRINGS( SIGNALS );
 
-static int mqtt_sock;
-static struct pollfd mqtt_poll;
+DEFINE_STATE(Connect);
+DEFINE_STATE(Subscribe);
+DEFINE_STATE(Idle);
+
 static char * broker_ip;
 static char * client_name;
+static event_fifo_t events;
 
 void Daemon_OnBoardLED( mqtt_data_t * data );
 void Heartbeat( void );
@@ -48,55 +53,14 @@ static mqtt_subs_t subs[NUM_SUBS] =
     {"debug_led", mqtt_type_bool, Daemon_OnBoardLED},
 };
 
-DEFINE_STATE(Connect);
-DEFINE_STATE(Subscribe);
-DEFINE_STATE(Idle);
-
-#define FIFO_LEN (32U)
-
-typedef struct
+#define NUM_EVENTS (4)
+static event_callback_t event_callback[NUM_EVENTS] =
 {
-    fifo_base_t base;
-    event_t queue[FIFO_LEN];
-    event_t data;
-} event_fifo_t;
-
-static void Enqueue( fifo_base_t * const fifo );
-static void Dequeue( fifo_base_t * const fifo );
-static void Flush( fifo_base_t * const fifo );
-
-static void Init( event_fifo_t * fifo )
-{
-    static const fifo_vfunc_t vfunc =
-    {
-        .enq = Enqueue,
-        .deq = Dequeue,
-        .flush = Flush,
-    };
-    FIFO_Init( (fifo_base_t *)fifo, FIFO_LEN );
-    
-    fifo->base.vfunc = &vfunc;
-    fifo->data = 0x0;
-    memset(fifo->queue, 0x00, FIFO_LEN * sizeof(fifo->data));
-}
-
-void Enqueue( fifo_base_t * const base )
-{
-    assert(base != NULL );
-    ENQUEUE_BOILERPLATE( event_fifo_t, base );
-}
-
-void Dequeue( fifo_base_t * const base )
-{
-    assert(base != NULL );
-    DEQUEUE_BOILERPLATE( event_fifo_t, base );
-}
-
-void Flush( fifo_base_t * const base )
-{
-    assert(base != NULL );
-    FLUSH_BOILERPLATE( event_fifo_t, base );
-}
+    {"Tick", Timer_Tick1s, EVENT(Tick)},
+    {"MQTT Message Received", MQTT_MessageReceived, EVENT(MessageReceived)},
+    {"Heartbeat Led", Timer_Tick500ms, EVENT(Heartbeat)},
+    {"Homepage Update", Timer_Tick60s, EVENT(UpdateHomepage)},
+};
 
 state_ret_t State_Connect( state_t * this, event_t s )
 {
@@ -110,8 +74,7 @@ state_ret_t State_Connect( state_t * this, event_t s )
             
             if( MQTT_Connect() )
             {
-                mqtt_poll.fd = mqtt_sock;
-                mqtt_poll.events = POLLIN;
+                MQTT_CreatePoll();
             }
             else
             {
@@ -219,7 +182,7 @@ state_ret_t State_Idle( state_t * this, event_t s )
             {
                 Sensor_Read();
                 float temperature = Sensor_GetTemperature();
-                if( MQTT_EncodeAndPublish("temp_live", mqtt_type_float, &temperature ) )
+                if( MQTT_EncodeAndPublish("temperature_live", mqtt_type_float, &temperature ) )
                 {
                     ret = HANDLED();
                 }
@@ -232,7 +195,7 @@ state_ret_t State_Idle( state_t * this, event_t s )
         case EVENT( UpdateHomepage ):
             {
                 float temperature = Sensor_GetTemperature();
-                if( MQTT_EncodeAndPublish("node_temp", mqtt_type_float, &temperature ) )
+                if( MQTT_EncodeAndPublish("temperature", mqtt_type_float, &temperature ) )
                 {
                     ret = HANDLED();
                 }
@@ -271,52 +234,13 @@ state_ret_t State_Idle( state_t * this, event_t s )
 
 void RefreshEvents( event_fifo_t * events )
 {
-
-    /* 500ms onboard blink */
-    static struct timespec current_nano_tick;
-    static struct timespec last_nano_tick;
-
-    timespec_get( &current_nano_tick, TIME_UTC );
-    if( (unsigned long)( current_nano_tick.tv_nsec - last_nano_tick.tv_nsec ) > 500000000UL )
+    for( int idx = 0; idx < NUM_EVENTS; idx++ )
     {
-        last_nano_tick = current_nano_tick;
-        FIFO_Enqueue( events, EVENT( Heartbeat ) );
+        if( event_callback[idx].event_fn() )
+        {
+            FIFO_Enqueue( events, event_callback[idx].event );
+        }
     }
-
-
-    /* Check for MQTT/Comms events */
-    int rv = poll( &mqtt_poll, 1, 1 );
-
-    if( rv & POLLIN )
-    {
-        FIFO_Enqueue( events, EVENT( MessageReceived ) );
-    }
-
-    /* Check whether Tick has Elapsed */
-    static time_t current_time;
-
-    static time_t last_tick;
-    static time_t last_homepage_tick;
-    
-    const double period = 1;
-    const double homepage_period = 60;
-
-    time( &current_time );
-
-    double delta = difftime( current_time, last_tick );
-    if( delta > period )
-    {   
-        FIFO_Enqueue( events, EVENT( Tick ) );
-        last_tick = current_time;
-    }
-
-    delta = difftime( current_time, last_homepage_tick );
-    if( delta > homepage_period )
-    {
-        FIFO_Enqueue( events, EVENT( UpdateHomepage ) );
-        last_homepage_tick = current_time;
-    }
-
 }
 
 static void Loop( void )
@@ -324,15 +248,12 @@ static void Loop( void )
     state_t daemon; 
     daemon.state = State_Connect; 
     event_t sig = EVENT( None );
-    event_fifo_t events;
 
-    Init(&events);
     FIFO_Enqueue( &events, EVENT( Enter ) );
 
     while( 1 )
     {
-        /* Get Event */
-        
+        /* Get Event */    
         while( FIFO_IsEmpty( (fifo_base_t *)&events ) )
         {
             RefreshEvents( &events );
@@ -374,7 +295,7 @@ void Heartbeat( void )
     led_on ^= true;
 }
 
-bool InitDaemon( int argc, char ** argv )
+bool Init( int argc, char ** argv )
 {
     bool success = false;
     bool ip_found = false;
@@ -402,7 +323,7 @@ bool InitDaemon( int argc, char ** argv )
 
     if( success )
     {
-        MQTT_Init( broker_ip, client_name, &mqtt_sock, subs, NUM_SUBS );
+        MQTT_Init( broker_ip, client_name, subs, NUM_SUBS );
     }
 
     return success;
@@ -411,7 +332,9 @@ bool InitDaemon( int argc, char ** argv )
 int main( int argc, char ** argv )
 {
     (void)TimeStamp_Generate();
-    bool success = InitDaemon( argc, argv );
+    Timer_Init();
+    Events_Init(&events);
+    bool success = Init( argc, argv );
 
     if( success )
     {
