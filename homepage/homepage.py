@@ -1,8 +1,8 @@
 from flask import Flask, redirect, render_template, request, url_for
 from flask_sqlalchemy import SQLAlchemy
 #from flask_basicauth import BasicAuth
-#from flask_caching import Cache
-#from flask_mqtt import Mqtt
+from flask_caching import Cache
+from flask_mqtt import Mqtt
 from sqlalchemy import or_
 from matplotlib.figure import Figure
 import base64
@@ -30,6 +30,29 @@ import os
 app = Flask(__name__)
 
 basedir = os.path.abspath(os.path.dirname(__file__))
+cache_config = {
+    "DEBUG": True,         
+    "CACHE_TYPE": 'redis',
+    "CACHE_REDIS_HOST": 'localhost',
+    "CAHCE_REDIS_URL":'redis://localhost:6379',
+    "CACHE_DEFAULT_TIMEOUT": 300
+}
+
+app.config.from_mapping(cache_config)
+cache = Cache(app)
+
+cache.delete('temperature')
+
+app.config['MQTT_BROKER_URL'] = 'localhost' 
+app.config['MQTT_CLIENT_ID'] = 'pi-homepage'
+app.config['MQTT_BROKER_PORT'] = 1883 
+app.config['MQTT_USERNAME'] = ''
+app.config['MQTT_PASSWORD'] = '' 
+app.config['MQTT_KEEPALIVE'] = 60
+app.config['MQTT_TLS_ENABLED'] = False
+
+# Start MQTT Connection
+mqtt = Mqtt(app=app,connect_async=True)
 
 last_update = dt.datetime.now()
 site_version = 3.0
@@ -62,10 +85,40 @@ def generate_test_graph():
 @app.route("/")
 def index():
     graph_image = generate_test_graph()
+    temperature = cache.get("temperature");
     return render_template('index.html',
                            graph=graph_image,
                            last_update=last_update,
-                           site_version=site_version)
+                           site_version=site_version,
+                           temperature=temperature)
+
+# A bug, this callback DOES NOT call, even with connect_async=True
+@mqtt.on_connect()
+def handle_connect(client,userdata,flags,rc):
+    print("MQTT Connected")
+    mqtt.subscribe('home/temperature/#')
+    mqtt.subscribe('home/temperature_live/#')
+    mqtt.subscribe('home/humidity/#')
+
+@mqtt.on_topic('home/temperature_live/#')
+@mqtt.on_topic('home/temperature/#')
+def handle_temperature_data(client,userdata,message):
+    full_topic = message.topic
+    node = full_topic.replace('/',' ').split()[-1]
+    data = message.payload.decode()
+    if( cache.get("temperature") is not None):
+        temp = cache.get("temperature")
+        temp[node] = str(data)
+        cache.set("temperature", temp)
+    else:
+        temp = {}
+        temp[node] = str(data)
+        cache.set("temperature", temp)
+
+@mqtt.on_message()
+def handle_mqtt_message(client,userdata,message):
+    mqtt.publish('home/debug','Received!')
+
 
 #def mqtt_subscribe_all():
 #    # Subscribe to defaults
