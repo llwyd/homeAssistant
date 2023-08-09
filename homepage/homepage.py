@@ -10,6 +10,7 @@ from io import BytesIO
 import datetime as dt
 import numpy as np
 import os
+import subprocess
 
 #class TemperatureData(db.Model):
 #    __tablename__ = "temperature_data"
@@ -87,10 +88,15 @@ def index():
     graph_image = generate_test_graph()
     temperature = cache.get("temperature");
     last_update = dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
+
+    uptime_result = subprocess.run(['uptime','--pretty'], stdout=subprocess.PIPE)
+    uptime = uptime_result.stdout.decode('utf-8')[3:-1];
+
     return render_template('index.html',
                            graph=graph_image,
                            last_update=last_update,
                            site_version=site_version,
+                           uptime=uptime,
                            temperature=temperature)
 
 # A bug, this callback DOES NOT call, even with connect_async=True
