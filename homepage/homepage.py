@@ -54,7 +54,7 @@ app.config['MQTT_TLS_ENABLED'] = False
 # Start MQTT Connection
 mqtt = Mqtt(app=app,connect_async=True)
 
-last_update = dt.datetime.now()
+last_update = "N/A"
 site_version = 3.0
 
 def generate_test_graph():
@@ -86,6 +86,7 @@ def generate_test_graph():
 def index():
     graph_image = generate_test_graph()
     temperature = cache.get("temperature");
+    last_update = dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
     return render_template('index.html',
                            graph=graph_image,
                            last_update=last_update,

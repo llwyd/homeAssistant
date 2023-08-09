@@ -7,28 +7,58 @@
                 <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" integrity="sha512-dTfge/zgoMYpP7QbHy4gWMEGsbsdZeCXz7irItjcC3sPUFtf0kuFbDz/ixG7ArTxmDjLXDmezHubeNikyKGVyQ==" crossorigin="anonymous">
         
         <style>
-        th  {
-                text-align: center;
-            }
-                        h1 {
-                                text-align: center;
-                        }
-                        footer{
-                                text-align: center;
-                        }
-                        div.info
-                        {
-                                text-align: center
-                        }
+                th,td
+                {
+                    text-align: center;
+                    padding: 10px;
+                }
+                h1
+                {
+                    text-align: center;
+                }
+                footer
+                {
+                    text-align: center;
+                }
+                div.info
+                {
+                    text-align: center
+                }
+                div.container
+                {
+                    text-align: center;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
                 </style>
         </head>
     <body>
         <h1>Hello, World</h1>
             <hr>
+                <!--
             <div class = "info">
                 <img src="data:image/png;base64, {{graph}}"/>
-                <!--                <img src="data:image/png;base64, {{graph}}"/> -->
+
             </div>    
+                -->
+		<div class="container">
+    <table style ="margin-left:auto;margin-right:auto;">
+        <tr>
+            <th><b>Node</b></th>
+            <th><b>Temperature</b></th>
+        </tr>
+        {% for key, data in temperature.items() %}
+        <div class="table">
+            <tr>
+                <td>{{key}}</td>
+                <td>{{data}} C</td>
+            </tr>
+        </div>
+        {% endfor %}
+        </table>
+    </div><!-- /.container -->	
+
+
     </body>
     <footer>
         <hr>
@@ -36,6 +66,5 @@
             <h7><b>Site Version: </b>{{site_version}}</h7>
             <h7><b>      Uptime: </b>????</h7>
             <h7><b>    Git Hash: </b>????</h7>
-            <h7><b> Temperature: </b>{{temperature}}</h7>
     </footer>
 </html>
