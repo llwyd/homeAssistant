@@ -109,7 +109,7 @@ def index():
     env_data = get_environment_data()
     last_update = dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
 
-    uptime = get_uptime
+    uptime = get_uptime()
 
     return render_template('index.html',
                            graph=graph_image,
