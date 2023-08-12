@@ -99,15 +99,17 @@ def get_environment_data():
     
     return data_list
 
+def get_uptime():
+    uptime_result = subprocess.run(['uptime','--pretty'], stdout=subprocess.PIPE)
+    return uptime_result.stdout.decode('utf-8')[3:-1];
+
 @app.route("/")
 def index():
     graph_image = generate_test_graph()
-    #temperature = cache.get("temperature");
     env_data = get_environment_data()
     last_update = dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
 
-    uptime_result = subprocess.run(['uptime','--pretty'], stdout=subprocess.PIPE)
-    uptime = uptime_result.stdout.decode('utf-8')[3:-1];
+    uptime = get_uptime
 
     return render_template('index.html',
                            graph=graph_image,
@@ -119,9 +121,6 @@ def index():
 @mqtt.on_connect()
 def handle_connect(client,userdata,flags,rc):
     print("MQTT Connected")
-    #mqtt.subscribe('home/temperature/#')
-    #mqtt.subscribe('home/temperature_live/#')
-    #mqtt.subscribe('home/humidity/#')
     mqtt.subscribe('home/environment/#')
 
 @mqtt.on_topic('home/temperature_live/#')
