@@ -181,8 +181,8 @@ state_ret_t State_Idle( state_t * this, event_t s )
         case EVENT( Tick ):
             {
                 Sensor_Read();
-                float temperature = Sensor_GetTemperature();
-                if( MQTT_EncodeAndPublish("temperature_live", mqtt_type_float, &temperature ) )
+                char * json = Sensor_GenerateJSON();
+                if( MQTT_EncodeAndPublish("environment", mqtt_type_str, json ) )
                 {
                     ret = HANDLED();
                 }

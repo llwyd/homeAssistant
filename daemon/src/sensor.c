@@ -1,12 +1,28 @@
 #include "sensor.h"
 
+#define JSON_PACKET_SIZE (64U)
+
 static const char * device = "/dev/i2c-1";
 static const uint8_t address = 0x18;
 static float current_temp = 0.0f;
+static float current_hum = 0.0f;
+
+static char json_packet[JSON_PACKET_SIZE];
 
 extern float Sensor_GetTemperature( void )
 {
     return current_temp;
+}
+
+extern char * Sensor_GenerateJSON(void)
+{
+    memset(json_packet, 0x00, JSON_PACKET_SIZE);
+
+    snprintf(json_packet, JSON_PACKET_SIZE,
+            "{\"temperature\":%.1f,\"humidity\":%.1f}",
+            current_temp,
+            current_hum);
+    return json_packet;
 }
 
 static void CalculateTemperature( uint8_t * data )

@@ -17,5 +17,6 @@
 void Sensor_Init( void );
 void Sensor_Read( void );
 extern float Sensor_GetTemperature( void );
+extern char * Sensor_GenerateJSON(void);
 
 #endif /* _SENSOR_H_ */
