@@ -46,14 +46,18 @@
         <tr>
             <th><b>Node</b></th>
             <th><b>Temperature</b></th>
+            <th><b>Humidity</b></th>
         </tr>
         {% for data in environment %}
+        {% for key, item in data.items() %}
         <div class="table">
             <tr>
-                <td>{{data}}</td>
-                <td>{{data['temperature']}} C</td>
+                <td>{{key}}</td>
+                <td>{{item['temperature']}} C</td>
+                <td>{{item['humidity']}} %</td>
             </tr>
         </div>
+        {% endfor %}
         {% endfor %}
         </table>
     </div><!-- /.container -->	
