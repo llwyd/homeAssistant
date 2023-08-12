@@ -11,6 +11,8 @@ import datetime as dt
 import numpy as np
 import os
 import subprocess
+import json
+import redis
 
 #class TemperatureData(db.Model):
 #    __tablename__ = "temperature_data"
@@ -83,10 +85,25 @@ def generate_test_graph():
 
     return base64.b64encode(buf.getbuffer()).decode("ascii")
 
+def get_environment_data():
+    r = redis.StrictRedis(host='localhost', port=6379, db=0)
+    data_list = []
+    for key in r.scan_iter("flask_cache_*"):
+        data_to_add = {}
+        key_raw = key[0]
+        key_str = key.decode()
+        data = cache.get(key_str.removeprefix('flask_cache_'))
+        new_key = key_str.removeprefix('flask_cache_')
+        data_to_add[new_key] = data
+        data_list.append(data_to_add)
+    
+    return data_list
+
 @app.route("/")
 def index():
     graph_image = generate_test_graph()
-    temperature = cache.get("temperature");
+    #temperature = cache.get("temperature");
+    env_data = get_environment_data()
     last_update = dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
 
     uptime_result = subprocess.run(['uptime','--pretty'], stdout=subprocess.PIPE)
@@ -97,15 +114,15 @@ def index():
                            last_update=last_update,
                            site_version=site_version,
                            uptime=uptime,
-                           temperature=temperature)
+                           environment=env_data)
 
-# A bug, this callback DOES NOT call, even with connect_async=True
 @mqtt.on_connect()
 def handle_connect(client,userdata,flags,rc):
     print("MQTT Connected")
-    mqtt.subscribe('home/temperature/#')
-    mqtt.subscribe('home/temperature_live/#')
-    mqtt.subscribe('home/humidity/#')
+    #mqtt.subscribe('home/temperature/#')
+    #mqtt.subscribe('home/temperature_live/#')
+    #mqtt.subscribe('home/humidity/#')
+    mqtt.subscribe('home/environment/#')
 
 @mqtt.on_topic('home/temperature_live/#')
 @mqtt.on_topic('home/temperature/#')
@@ -121,6 +138,21 @@ def handle_temperature_data(client,userdata,message):
         temp = {}
         temp[node] = str(data)
         cache.set("temperature", temp)
+
+@mqtt.on_topic('home/environment/#')
+def handle_environment_data(client,userdata,message):
+    full_topic = message.topic
+    node = full_topic.replace('/',' ').split()[-1]
+    data_str = message.payload.decode()
+    data = json.loads(data_str)
+    print(data)
+    if( cache.get(node) is not None):
+        temp = cache.get(node)
+        temp = data
+        cache.set(node,temp)
+    else:
+        temp = data
+        cache.set(node,temp)
 
 @mqtt.on_message()
 def handle_mqtt_message(client,userdata,message):
