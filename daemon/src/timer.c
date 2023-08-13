@@ -9,7 +9,7 @@ static bool HasSecondsTimerElapsed( double period, time_t *last_tick )
     time( &current_time );
 
     double delta = difftime( current_time, *last_tick );
-    if( delta > period )
+    if( delta >= period )
     {
         hasElapsed = true; 
         *last_tick = current_time;
@@ -31,7 +31,7 @@ extern bool Timer_Tick500ms(void)
     static struct timespec last_tick;
 
     timespec_get( &current_tick, TIME_UTC );
-    if( (unsigned long)( current_tick.tv_nsec - last_tick.tv_nsec ) > 500000000UL )
+    if( (unsigned long)( current_tick.tv_nsec - last_tick.tv_nsec ) >= 500000000UL )
     {
         last_tick = current_tick;
         timerElapsed = true;
