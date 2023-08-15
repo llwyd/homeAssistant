@@ -280,7 +280,7 @@ void Daemon_OnBoardLED( mqtt_data_t * data )
 
 void Heartbeat( void )
 {
-    int led_fd = open("/sys/class/leds/led0/brightness", O_WRONLY );
+    int led_fd = open("/sys/class/leds/ACT/brightness", O_WRONLY );
     static bool led_on;
 
     if( led_on )
