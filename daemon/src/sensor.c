@@ -19,7 +19,7 @@ extern char * Sensor_GenerateJSON(void)
     memset(json_packet, 0x00, JSON_PACKET_SIZE);
 
     snprintf(json_packet, JSON_PACKET_SIZE,
-            "{\"temperature\":%.1f,\"humidity\":%.1f}",
+            "{\"temperature\":%.1f,\"humidity\":%.1f,\"uptime_ms\":0}",
             current_temp,
             current_hum);
     return json_packet;

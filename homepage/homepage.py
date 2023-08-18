@@ -93,6 +93,8 @@ def get_environment_data():
         key_raw = key[0]
         key_str = key.decode()
         data = cache.get(key_str.removeprefix('flask_cache_'))
+        uptime_ms = int(data['uptime_ms'] / 1000)
+        data['uptime_ms'] = str(dt.timedelta(seconds=uptime_ms))
         new_key = key_str.removeprefix('flask_cache_')
         data_to_add[new_key] = data
         data_list.append(data_to_add)
