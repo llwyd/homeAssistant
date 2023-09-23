@@ -17,8 +17,9 @@ extern void Events_Init(event_fifo_t * fifo)
     FIFO_Init( (fifo_base_t *)fifo, FIFO_LEN );
     
     fifo->base.vfunc = &vfunc;
-    fifo->data = 0x0;
-    memset(fifo->queue, 0x00, FIFO_LEN * sizeof(fifo->data));
+    fifo->in = 0x0;
+    fifo->out = 0x0;
+    memset(fifo->queue, 0x00, FIFO_LEN * sizeof(fifo->in));
 }
 
 static void Enqueue( fifo_base_t * const base )

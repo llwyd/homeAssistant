@@ -39,7 +39,8 @@ typedef struct
 {
     fifo_base_t base;
     mqtt_resp_t queue[RESP_FIFO_LEN];
-    mqtt_resp_t data;
+    mqtt_resp_t in;
+    mqtt_resp_t out;
 }
 resp_fifo_t;
 
@@ -114,6 +115,7 @@ static void InitRespFifo(resp_fifo_t * fifo);
 static void RespEnqueue( fifo_base_t * const fifo );
 static void RespDequeue( fifo_base_t * const fifo );
 static void RespFlush( fifo_base_t * const fifo );
+static void RespPeek( fifo_base_t * const fifo );
 
 mqtt_data_t Extract( char * data, mqtt_type_t type )
 {
@@ -219,7 +221,17 @@ bool Ack_Publish(mqtt_t * mqtt, uint8_t * buff, uint8_t len )
     uint8_t return_code = buff[0];
     uint8_t msg_len = buff[1];
 
-    assert( msg_len == len );
+    if( msg_len != len )
+    {
+        printf("len: 0x%x\n", len);
+        printf("msg_len: 0x%x\n", msg_len);
+        printf("rc: 0x%x\n", return_code);
+        printf("[0]: 0x%x\n", buff[0]); 
+        printf("[1]: 0x%x\n", buff[1]); 
+        printf("[2]: 0x%x\n", buff[2]); 
+        printf("[3]: 0x%x\n", buff[3]); 
+        assert( msg_len == len );
+    }
 
     bool ret = false;
     uint16_t msg_id =  ( buff[2] << 8 ) | buff[3];
@@ -245,11 +257,12 @@ bool Ack_Publish(mqtt_t * mqtt, uint8_t * buff, uint8_t len )
     else
     {
         char topic[64];
-        char full_topic[64];
-        char data[32];
+        char full_topic[128];
+        char data[64];
 
         memset( topic, 0x00, 64);
-        memset( data, 0x00, 32);
+        memset( full_topic, 0x00, 128);
+        memset( data, 0x00, 64);
                 
         unsigned char msg_len = len;
         unsigned char topic_len = buff[2] << 8 | buff[3];
@@ -351,6 +364,11 @@ static void IncrementSendMessageID(void )
     {
         send_msg_id = 0x1;
     }
+}
+
+extern void MQTT_IncrementSeqID( mqtt_t * mqtt)
+{
+    IncrementSendMessageID();
 }
 
 static bool CheckMsgIDBuffer( uint16_t id )
@@ -547,6 +565,8 @@ static bool Decode( uint8_t * buffer, uint16_t len )
             break;
         default:
             printf("\tMQTT ERROR! Bad Receive Packet\n");
+            printf("len: 0x%x\n",msg_length);
+            printf("rc: 0x%x\n", return_code);
             assert( false );
             break;
     }
@@ -677,6 +697,7 @@ extern bool MQTT_Subscribe( mqtt_t * mqtt )
     assert( mqtt->num_subs > 0U );
 
     bool success = true;
+    successful_subs = 0;
     for( uint8_t i = 0; i < mqtt->num_subs; i++ )
     {
         success &= Subscribe( mqtt, &mqtt->subs[i] );
@@ -727,6 +748,7 @@ extern bool MQTT_Publish( mqtt_t * mqtt, char * topic, char * data)
             
     printf("\t  data: %s\n", text_buff);
     printf("\t  size: %d\n", data_len);
+    printf("\t    id: %d\n", send_msg_id);
 
     memcpy(msg_ptr, text_buff, data_len);
 
@@ -864,6 +886,9 @@ extern bool MQTT_HandleMessage( mqtt_t * mqtt, uint8_t * buffer)
         default:
         {
             printf("\tMQTT ERROR! Bad Receive Packet\n");
+            printf("len: 0x%x\n",msg_length);
+            printf("rc: 0x%x\n", return_code);
+            printf("type: 0x%x\n", msg_type);
             assert( false );
             break;
         }
@@ -894,11 +919,12 @@ static void InitRespFifo(resp_fifo_t * fifo)
         .enq = RespEnqueue,
         .deq = RespDequeue,
         .flush = RespFlush,
+        .peek = RespPeek,
     };
     FIFO_Init( (fifo_base_t *)fifo, RESP_FIFO_LEN );
     
     fifo->base.vfunc = &vfunc;
-    memset(fifo->queue, 0x00, RESP_FIFO_LEN * sizeof(fifo->data));
+    memset(fifo->queue, 0x00, RESP_FIFO_LEN * sizeof(fifo->in));
 }
 
 static void RespEnqueue( fifo_base_t * const base )
@@ -917,5 +943,11 @@ static void RespFlush( fifo_base_t * const base )
 {
     assert(base != NULL );
     FLUSH_BOILERPLATE( resp_fifo_t, base );
+}
+
+static void RespPeek( fifo_base_t * const base )
+{
+    assert(base != NULL );
+    PEEK_BOILERPLATE( resp_fifo_t, base );
 }
 

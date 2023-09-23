@@ -12,6 +12,8 @@ pico_sdk_init()
 
 add_executable(node
     src/node_pico.c
+    src/daemon.c
+    src/daemon.h
     src/node_events.h
     src/environment.c
     src/environment.h
@@ -21,6 +23,24 @@ add_executable(node
     src/emitter.h
     src/comms.h
     src/comms.c
+    src/i2c.c
+    src/i2c.h
+    src/accelerometer.h
+    src/accelerometer.c
+    src/udp.c
+    src/udp.h
+    src/ntp.c
+    src/ntp.h
+    src/gpio.h
+    src/gpio.c
+    src/alarm.h
+    src/alarm.c
+    src/config.h
+    src/config.c
+    src/eeprom.c
+    src/eeprom.h
+    src/cli.c
+    src/cli.h
     ../../stateengine/src/state.h
     ../../stateengine/src/state.c
     ../../stateengine/src/fifo_base.h
@@ -29,6 +49,8 @@ add_executable(node
     ../../common/events.c
     ../../common/bme280.c
     ../../common/bme280.h
+    ../../common/MCP9808.h
+    ../../common/MCP9808.c
     ../../common/msg_fifo.c
     ../../common/msg_fifo.h
     ../../common/mqtt.c
@@ -39,6 +61,11 @@ pico_enable_stdio_usb(node 1)
 pico_enable_stdio_uart(node 1)
 pico_add_extra_outputs(node)
 
+#target_compile_definitions(node PRIVATE SENSOR_MCP9808 )
+target_compile_definitions(node PRIVATE ACCELEROMETER_ENABLED )
+
+target_compile_options(node PRIVATE -Wfatal-errors )
+
 target_include_directories(node PRIVATE ${CMAKE_CURRENT_LIST_DIR} )
 include_directories( node PRIVATE src )
 include_directories( node PRIVATE common )
@@ -48,4 +75,5 @@ include_directories( node PRIVATE ../../stateengine/src )
 target_link_libraries(node 
     pico_cyw43_arch_lwip_threadsafe_background 
     pico_stdlib 
-    hardware_i2c)
+    hardware_i2c
+    hardware_rtc)

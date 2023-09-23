@@ -14,6 +14,14 @@
     SIG( TCPDisconnected ) \
     SIG( MessageReceived ) \
     SIG( MQTTRetryConnect ) \
+    SIG( AccelDataReady ) \
+    SIG( AccelMotion ) \
+    SIG( DNSReceived ) \
+    SIG( DNSRetryRequest ) \
+    SIG( NTPReceived ) \
+    SIG( NTPRetryRequest ) \
+    SIG( AlarmElapsed ) \
+    SIG( HandleCommand ) \
 
 GENERATE_SIGNALS( SIGNALS );
 GENERATE_SIGNAL_STRINGS( SIGNALS );

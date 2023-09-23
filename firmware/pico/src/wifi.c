@@ -1,27 +1,34 @@
 #include "wifi.h"
-#include "secret_keys.h"
+#include <assert.h>
+#include "eeprom.h"
 
-extern bool WIFI_Init(void)
+static uint8_t ssid[EEPROM_ENTRY_SIZE] = {0U};
+static uint8_t pass[EEPROM_ENTRY_SIZE] = {0U};
+
+extern void WIFI_Init(void)
 {
-    bool success = false;
     printf("Initialising WIFI driver\n");
+    printf("\tRetrieving settings from EEPROM\n");
+
+    EEPROM_Read(ssid, EEPROM_ENTRY_SIZE, EEPROM_SSID);
+    EEPROM_Read(pass, EEPROM_ENTRY_SIZE, EEPROM_PASS);
+
+    printf("\tSSID: %s\n", ssid);
+    printf("\tPASS: %s\n", pass);
+
     if(cyw43_arch_init_with_country(CYW43_COUNTRY_UK))
     {
-        printf("Failed\n");
-        goto cleanup;
+        assert(false);
     }
     WIFI_ClearLed();
     cyw43_arch_enable_sta_mode();
     
-    success = true;
-cleanup:
-    return success;
 }
 
 extern void WIFI_TryConnect(void)
 {
     WIFI_ClearLed();
-    if(cyw43_arch_wifi_connect_async(WIFI_SSID, WIFI_PASS, CYW43_AUTH_WPA2_MIXED_PSK))
+    if(cyw43_arch_wifi_connect_async(ssid, pass, CYW43_AUTH_WPA2_MIXED_PSK))
     {
         printf("Failed to retry\n");
     }

@@ -48,6 +48,7 @@ extern bool MQTT_Subscribe( mqtt_t * mqtt );
 extern bool MQTT_Publish( mqtt_t * mqtt, char * topic, char * data);
 extern bool MQTT_HandleMessage( mqtt_t * mqtt, uint8_t * buffer);
 extern bool MQTT_AllSubscribed( mqtt_t * mqtt );
+extern void MQTT_IncrementSeqID( mqtt_t * mqtt);
 
 /* Legacy stuff */
 extern bool MQTT_Receive( void );

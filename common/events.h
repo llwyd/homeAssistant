@@ -23,7 +23,8 @@ typedef struct
 {
     fifo_base_t base;
     event_t queue[FIFO_LEN];
-    event_t data;
+    event_t in;
+    event_t out;
 } event_fifo_t;
 
 extern void Events_Init(event_fifo_t * fifo);

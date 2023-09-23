@@ -9,7 +9,7 @@
 #include "pico/cyw43_arch.h"
 #include "pico/critical_section.h"
 
-extern bool WIFI_Init(void);
+extern void WIFI_Init(void);
 extern bool WIFI_CheckStatus(void);
 extern void WIFI_TryConnect(void);
 extern void WIFI_SetLed(void);
