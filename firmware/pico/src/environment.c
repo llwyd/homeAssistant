@@ -134,12 +134,12 @@ extern void Enviro_GenerateJSON(char * buffer, uint8_t buffer_len)
 
     memset(buffer,0x00, buffer_len);
 #ifdef SENSOR_MCP9808
-    snprintf(buffer, buffer_len,"{\"temperature\":%.1f,\"humidity\":%.1f,\"uptime_ms\":%d}",
+    snprintf(buffer, buffer_len,"{\"temperature\":%.1f,\"humidity\":%.1f,\"uptime_ms\":%u}",
             MCP9808_GetTemperature(),
             0.0,
             uptime_ms);
 #else
-    snprintf(buffer, buffer_len,"{\"temperature\":%.1f,\"humidity\":%.1f,\"uptime_ms\":%d}",
+    snprintf(buffer, buffer_len,"{\"temperature\":%.1f,\"humidity\":%.1f,\"uptime_ms\":%u}",
             env_data.temperature,
             env_data.humidity,
             uptime_ms);
