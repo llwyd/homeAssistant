@@ -1,5 +1,5 @@
 #include "sensor.h"
-
+#include "timer.h"
 #define JSON_PACKET_SIZE (64U)
 
 #ifdef __arm__
@@ -20,10 +20,12 @@ extern char * Sensor_GenerateJSON(void)
 {
     memset(json_packet, 0x00, JSON_PACKET_SIZE);
 
+    uint32_t time_since_start = Timer_TimeSinceStartMS();
     snprintf(json_packet, JSON_PACKET_SIZE,
-            "{\"temperature\":%.1f,\"humidity\":%.1f,\"uptime_ms\":0}",
+            "{\"temperature\":%.1f,\"humidity\":%.1f,\"uptime_ms\":%u}",
             current_temp,
-            current_hum);
+            current_hum,
+            time_since_start);
     return json_packet;
 }
 

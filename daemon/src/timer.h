@@ -19,4 +19,6 @@ extern bool Timer_Tick500ms(void);
 extern bool Timer_Tick1s(void);
 extern bool Timer_Tick60s(void);
 
+extern uint32_t Timer_TimeSinceStartMS(void);
+
 #endif /* TIMER_H_ */

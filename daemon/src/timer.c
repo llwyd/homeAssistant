@@ -1,5 +1,8 @@
 #include "timer.h"
 
+/* In seconds */
+static time_t start_time;
+
 static bool HasSecondsTimerElapsed( double period, time_t *last_tick )
 {
     assert( last_tick != NULL );
@@ -18,9 +21,24 @@ static bool HasSecondsTimerElapsed( double period, time_t *last_tick )
     return hasElapsed;
 }
 
+extern uint32_t Timer_TimeSinceStartMS(void)
+{
+    time_t current_time;
+    time( &current_time );
+
+    double delta = difftime( current_time, start_time );
+    
+    /* Cast and convert to MS */
+    uint32_t delta32 = (uint32_t)delta;
+    delta32 *= 1000U;
+    
+    return delta32;
+}
+
 extern void Timer_Init(void)
 {
     printf("Initialising timers\n");
+    time(&start_time);
 }
 
 extern bool Timer_Tick500ms(void)
