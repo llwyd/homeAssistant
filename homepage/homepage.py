@@ -14,14 +14,15 @@ import subprocess
 import json
 import redis
 
-#class TemperatureData(db.Model):
-#    __tablename__ = "temperature_data"
-#    id              = db.Column(db.Integer, primary_key=True)
-#    device_id       = db.Column(db.String(32))                      # id of the unit
-#    datestamp       = db.Column(db.String(32))                     # datestamp
-#    timestamp       = db.Column(db.String(32))                     # timestamp
-#    temperature     = db.Column(db.String(16))                      # temperature
-#
+class EnvironmentData(db.Model):
+    __tablename__ = "environment_data"
+    id              = db.Column(db.Integer, primary_key=True)
+    device_id       = db.Column(db.String(32))
+    datestamp       = db.Column(db.String(32))
+    timestamp       = db.Column(db.String(32))
+    temperature     = db.Column(db.String(16))
+    humidity        = db.Column(db.String(16))
+
 #class HumidityData(db.Model):
 #    __tablename__ = "humidity_data"
 #    id              = db.Column(db.Integer, primary_key=True)
@@ -59,6 +60,13 @@ mqtt = Mqtt(app=app,connect_async=True)
 
 last_update = "N/A"
 site_version = 3.0
+
+def database_update(name, temperature, humidity):
+    datestamp = dt.datetime.now().strftime('%Y-%m-%d')
+    timestamp = dt.datetime.now().strftime('%H:%M')
+    reading = Readings(deviceID = name, datestamp = datestamp, timestamp = timestamp, temperature = temperature, humidity = humidity)
+    db.session.add(reading)
+    db.session.commit()
 
 def generate_test_graph():
     fig = Figure()
@@ -125,21 +133,6 @@ def handle_connect(client,userdata,flags,rc):
     print("MQTT Connected")
     mqtt.subscribe('home/environment/#')
 
-@mqtt.on_topic('home/temperature_live/#')
-@mqtt.on_topic('home/temperature/#')
-def handle_temperature_data(client,userdata,message):
-    full_topic = message.topic
-    node = full_topic.replace('/',' ').split()[-1]
-    data = message.payload.decode()
-    if( cache.get("temperature") is not None):
-        temp = cache.get("temperature")
-        temp[node] = str(data)
-        cache.set("temperature", temp)
-    else:
-        temp = {}
-        temp[node] = str(data)
-        cache.set("temperature", temp)
-
 @mqtt.on_topic('home/environment/#')
 def handle_environment_data(client,userdata,message):
     full_topic = message.topic
@@ -154,6 +147,14 @@ def handle_environment_data(client,userdata,message):
     else:
         temp = data
         cache.set(node,temp)
+
+@mqtt.on_topic('home/summary/#')
+def handle_summary_data(client,userdata,message):
+    full_topic = message.topic
+    node = full_topic.replace('/',' ').split()[-1]
+    data_str = message.payload.decode()
+    data = json.loads(data_str)
+    database_update(node, data['temperature'], data['humidity'])
 
 @mqtt.on_message()
 def handle_mqtt_message(client,userdata,message):
