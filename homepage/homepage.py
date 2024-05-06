@@ -70,7 +70,7 @@ site_version = 3.0
 def database_update(name, temperature, humidity):
     datestamp = dt.datetime.now().strftime('%Y-%m-%d')
     timestamp = dt.datetime.now().strftime('%H:%M')
-    reading = EnvironmentData(deviceID = name, datestamp = datestamp, timestamp = timestamp, temperature = temperature, humidity = humidity)
+    reading = EnvironmentData(device_id = name, datestamp = datestamp, timestamp = timestamp, temperature = temperature, humidity = humidity)
     db.session.add(reading)
     db.session.commit()
 
