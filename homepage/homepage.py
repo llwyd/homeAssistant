@@ -121,28 +121,15 @@ def generate_temp_graph():
     for node in nodes:
         todays_data = db.session.query(EnvironmentData).filter( or_(EnvironmentData.datestamp == todays_date, EnvironmentData.datestamp == yesterdays_date), EnvironmentData.device_id == node ).all()
         x=[]
+        t=[]
         for d in todays_data:
             d_time = dt.datetime.strptime(d.datestamp + " " + d.timestamp,'%Y-%m-%d %H:%M')
             if(d_time >= yesterdays_time):
                 x.append(d.temperature)
+                t.append(d_time)
 
 
-        ax.plot(x,label=node)
-#            if(d.deviceID=='utility_room'):
-#                data['y'].append(d.temperature)
-#                data['x'].append(d_time)
-#            elif(d.deviceID=='outside'):
-#                data['z'].append(d.temperature)
-#                data['t'].append(d_time)
-#            elif(d.deviceID=='lounge_area'):
-#                data['p'].append(d.temperature)
-#                data['s'].append(d_time)
-#            elif(d.deviceID=='bedroom_area'):
-#                data['c'].append(d.temperature)
-#                data['d'].append(d_time)
-    #ax.plot(x, label='Sine 1')
-    #ax.plot(y, label='Sine 2')
-    #ax.plot(z, label='Sine 3')
+        ax.plot(t,x,label=node)
     
     ax.set_title('Temperature')
     ax.set_xlabel('Time')
