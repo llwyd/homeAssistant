@@ -14,6 +14,15 @@ import subprocess
 import json
 import redis
 
+app = Flask(__name__)
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///' + os.path.join(basedir, 'app.db')
+app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
+app.config["SQLALCHEMY_POOL_RECYCLE"] = 299
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db = SQLAlchemy(app)
+
 class EnvironmentData(db.Model):
     __tablename__ = "environment_data"
     id              = db.Column(db.Integer, primary_key=True)
@@ -31,16 +40,6 @@ class EnvironmentData(db.Model):
 #    timestamp       = db.Column(db.String(32))                     # timestamp
 #    humidity        = db.Column(db.String(16))                      # humidity
 
-app = Flask(__name__)
-
-SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///' + os.path.join(basedir, 'app.db')
-app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
-app.config["SQLALCHEMY_POOL_RECYCLE"] = 299
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-#
-db = SQLAlchemy(app)
-
-basedir = os.path.abspath(os.path.dirname(__file__))
 cache_config = {
     "DEBUG": True,         
     "CACHE_TYPE": 'redis',
