@@ -99,6 +99,55 @@ def generate_test_graph():
 
     return base64.b64encode(buf.getbuffer()).decode("ascii")
 
+def get_nodes():
+    r = redis.StrictRedis(host='localhost', port=6379, db=0)
+    key_list = []
+    for key in r.scan_iter("flask_cache_*"):
+        key_str = key.decode()
+        data['uptime_ms'] = str(dt.timedelta(seconds=uptime_ms))
+        new_key = key_str.removeprefix('flask_cache_')
+        data_to_add[new_key] = data
+        data_list.append(data_to_add)
+    
+    return data_list
+
+def generate_temp_graph():
+    fig = Figure()
+    ax = fig.subplots()
+
+    todays_date            = dt.datetime.now().strftime('%Y-%m-%d')
+    yesterdays_date        = (dt.datetime.now() - dt.timedelta(days=1)).strftime('%Y-%m-%d') 
+    yesterdays_time        = (dt.datetime.now() - dt.timedelta(days=1)) 
+    
+    todays_data = db.session.query( Readings ).filter( or_(Readings.datestamp == todays_date, Readings.datestamp == yesterdays_date) ).all()
+#    for d in todays_data:
+#        d_time = dt.datetime.strptime(d.datestamp + " " + d.timestamp,'%Y-%m-%d %H:%M')
+#        if(d_time >= yesterdays_time):
+#            if(d.deviceID=='utility_room'):
+#                data['y'].append(d.temperature)
+#                data['x'].append(d_time)
+#            elif(d.deviceID=='outside'):
+#                data['z'].append(d.temperature)
+#                data['t'].append(d_time)
+#            elif(d.deviceID=='lounge_area'):
+#                data['p'].append(d.temperature)
+#                data['s'].append(d_time)
+#            elif(d.deviceID=='bedroom_area'):
+#                data['c'].append(d.temperature)
+#                data['d'].append(d_time)
+    #ax.plot(x, label='Sine 1')
+    #ax.plot(y, label='Sine 2')
+    #ax.plot(z, label='Sine 3')
+    
+    ax.set_title('Temperature')
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Degrees (C)')
+    ax.legend()
+
+    buf = BytesIO()
+    fig.savefig(buf, format='png')
+    return base64.b64encode(buf.getbuffer()).decode("ascii")
+
 def get_environment_data():
     r = redis.StrictRedis(host='localhost', port=6379, db=0)
     data_list = []
