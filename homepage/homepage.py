@@ -33,6 +33,13 @@ class EnvironmentData(db.Model):
 
 app = Flask(__name__)
 
+SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///' + os.path.join(basedir, 'app.db')
+app.config["SQLALCHEMY_DATABASE_URI"] = SQLALCHEMY_DATABASE_URI
+app.config["SQLALCHEMY_POOL_RECYCLE"] = 299
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+#
+db = SQLAlchemy(app)
+
 basedir = os.path.abspath(os.path.dirname(__file__))
 cache_config = {
     "DEBUG": True,         
