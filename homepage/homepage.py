@@ -104,12 +104,9 @@ def get_nodes():
     key_list = []
     for key in r.scan_iter("flask_cache_*"):
         key_str = key.decode()
-        data['uptime_ms'] = str(dt.timedelta(seconds=uptime_ms))
         new_key = key_str.removeprefix('flask_cache_')
-        data_to_add[new_key] = data
-        data_list.append(data_to_add)
-    
-    return data_list
+        key_list.append(new_key)
+    return key_list
 
 def generate_temp_graph():
     fig = Figure()
@@ -118,11 +115,19 @@ def generate_temp_graph():
     todays_date            = dt.datetime.now().strftime('%Y-%m-%d')
     yesterdays_date        = (dt.datetime.now() - dt.timedelta(days=1)).strftime('%Y-%m-%d') 
     yesterdays_time        = (dt.datetime.now() - dt.timedelta(days=1)) 
-    
-    todays_data = db.session.query( Readings ).filter( or_(Readings.datestamp == todays_date, Readings.datestamp == yesterdays_date) ).all()
-#    for d in todays_data:
-#        d_time = dt.datetime.strptime(d.datestamp + " " + d.timestamp,'%Y-%m-%d %H:%M')
-#        if(d_time >= yesterdays_time):
+   
+    nodes = get_nodes()
+
+    for node in nodes:
+        todays_data = db.session.query( Readings ).filter( or_(Readings.datestamp == todays_date, Readings.datestamp == yesterdays_date), Readings.device_id == node ).all()
+        x=[]
+        for d in todays_data:
+            d_time = dt.datetime.strptime(d.datestamp + " " + d.timestamp,'%Y-%m-%d %H:%M')
+                if(d_time >= yesterdays_time):
+                    x.append(d.temperature)
+
+
+        ax.plot(x,label=node)
 #            if(d.deviceID=='utility_room'):
 #                data['y'].append(d.temperature)
 #                data['x'].append(d_time)
@@ -170,7 +175,7 @@ def get_uptime():
 
 @app.route("/")
 def index():
-    graph_image = generate_test_graph()
+    graph_image = generate_temp_graph()
     env_data = get_environment_data()
     last_update = dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
 
