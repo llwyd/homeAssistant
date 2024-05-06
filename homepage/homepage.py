@@ -119,12 +119,12 @@ def generate_temp_graph():
     nodes = get_nodes()
 
     for node in nodes:
-        todays_data = db.session.query( Readings ).filter( or_(Readings.datestamp == todays_date, Readings.datestamp == yesterdays_date), Readings.device_id == node ).all()
+        todays_data = db.session.query(EnvironmentData).filter( or_(EnvironmentData.datestamp == todays_date, EnvironmentData.datestamp == yesterdays_date), EnvironmentData.device_id == node ).all()
         x=[]
         for d in todays_data:
             d_time = dt.datetime.strptime(d.datestamp + " " + d.timestamp,'%Y-%m-%d %H:%M')
-                if(d_time >= yesterdays_time):
-                    x.append(d.temperature)
+            if(d_time >= yesterdays_time):
+                x.append(d.temperature)
 
 
         ax.plot(x,label=node)
@@ -192,6 +192,7 @@ def index():
 def handle_connect(client,userdata,flags,rc):
     print("MQTT Connected")
     mqtt.subscribe('home/environment/#')
+    mqtt.subscribe('home/summary/#')
 
 @mqtt.on_topic('home/environment/#')
 def handle_environment_data(client,userdata,message):
