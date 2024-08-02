@@ -195,6 +195,9 @@ state_ret_t State_MQTTConnect( state_t * this, event_t s )
         case EVENT( Exit ):
             ret = HANDLED();
             break;
+        case EVENT( Disconnect ):
+            ret = TRANSITION(this, STATE(Connect));
+            break;
         case EVENT( Heartbeat ):
             Heartbeat();
             ret = HANDLED();
@@ -353,8 +356,9 @@ void RefreshEvents( event_fifo_t * events )
 
 static void Loop( void )
 {
-    state_t daemon; 
-    daemon.state = State_Connect; 
+    static daemon_state_t daemon; 
+    daemon.state.state = State_Connect;
+    daemon.retry_count = 0U;
     event_t sig = EVENT( None );
 
     FIFO_Enqueue( &events, EVENT( Enter ) );
@@ -370,7 +374,7 @@ static void Loop( void )
         sig = FIFO_Dequeue( &events );
 
         /* Dispatch */
-        STATEMACHINE_FlatDispatch( &daemon, sig );
+        STATEMACHINE_FlatDispatch( &daemon.state, sig );
     }
 }
 
