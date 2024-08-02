@@ -399,8 +399,12 @@ bool Init( int argc, char ** argv )
 
 int main( int argc, char ** argv )
 {
-    printf("Git Hash: %s\n", META_GITHASH);
-    printf("Build Time: %s %s\n", META_DATESTAMP, META_TIMESTAMP);
+    printf("!---------------------------!\n");
+    printf("    Home Assistant Daemon\n\n");
+    printf("    Git Hash: %s\n", META_GITHASH);
+    printf("    Build Date: %s\n", META_DATESTAMP);
+    printf("    Build Time: %s\n", META_TIMESTAMP);
+    printf("!---------------------------!\n");
     (void)TimeStamp_Generate();
     Timer_Init();
     Events_Init(&events);
@@ -413,6 +417,9 @@ int main( int argc, char ** argv )
     else
     {
         printf("[CRITICAL ERROR!] FAILED TO INITIALISE\n");
+        printf("Missing flag(s):\n");
+        printf("\t-b\tMQTT broker IP\n");
+        printf("\t-c\tClient Name\n");
     }
     return 0U;
 }
