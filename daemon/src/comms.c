@@ -87,6 +87,10 @@ bool Comms_Connect(void)
 
 extern bool Comms_Disconnected(void)
 {
+    if(!connected)
+    {
+        sleep(1U);
+    }
     return !connected;
 }
 extern bool Comms_MessageReceived(void)

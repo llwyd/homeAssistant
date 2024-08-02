@@ -44,6 +44,15 @@ DEFINE_STATE(MQTTConnect);
 DEFINE_STATE(Subscribe);
 DEFINE_STATE(Idle);
 
+#define CONNECT_ATTEMPTS (5U)
+
+typedef struct
+{
+    state_t state;
+    uint32_t retry_count;
+}
+daemon_state_t;
+
 static char * broker_ip;
 static char * broker_port;
 static char * client_name;
@@ -75,10 +84,32 @@ state_ret_t State_Connect( state_t * this, event_t s )
     TimeStamp_Print();
     STATE_DEBUG( s );
     state_ret_t ret;
+    daemon_state_t * state = (daemon_state_t *)this;
+
     switch( s )
     {
-        case EVENT( Tick ):         
+        case EVENT( Tick ):
+        {
+            state->retry_count++;
+            if (state->retry_count > CONNECT_ATTEMPTS)
+            {
+                /* Attempt again */
+                state->retry_count = 0U;
+                if( Comms_Connect() )
+                {
+                    printf("\tTCP Connection successful\n");
+                    ret = TRANSITION(this, STATE(MQTTConnect));
+                }
+                else
+                {
+                    ret = HANDLED();
+                }
+            }
+            break;
+        }
         case EVENT( Enter ):
+        {
+            state->retry_count = 0U;
             if( Comms_Connect() )
             {
                 printf("\tTCP Connection successful\n");
@@ -89,6 +120,7 @@ state_ret_t State_Connect( state_t * this, event_t s )
                 ret = HANDLED();
             }
             break;
+        }
         case EVENT( Exit ):
             ret = HANDLED();
             break;
@@ -113,10 +145,30 @@ state_ret_t State_MQTTConnect( state_t * this, event_t s )
     TimeStamp_Print();
     STATE_DEBUG( s );
     state_ret_t ret;
+    daemon_state_t * state = (daemon_state_t *)this;
+    
     switch( s )
     {
-        case EVENT( Tick ):         
+        case EVENT( Tick ):
+        {
+            state->retry_count++;
+            if (state->retry_count > CONNECT_ATTEMPTS)
+            {
+                state->retry_count = 0U;
+                if(MQTT_Connect(&mqtt))
+                {
+                    ret = HANDLED();
+                }
+                else
+                {
+                    ret = TRANSITION(this, STATE(Connect));
+                }
+            }
+            break;
+        }
         case EVENT( Enter ):
+        {
+            state->retry_count = 0U;
             if(MQTT_Connect(&mqtt))
             {
                 ret = HANDLED();
@@ -126,6 +178,7 @@ state_ret_t State_MQTTConnect( state_t * this, event_t s )
                 ret = TRANSITION(this, STATE(Connect));
             }
             break;
+        }
         case EVENT( MessageReceived ):
             assert( !FIFO_IsEmpty( &msg_fifo.base ) );
             msg_t msg = FIFO_Dequeue(&msg_fifo);
