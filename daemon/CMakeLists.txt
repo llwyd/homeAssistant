@@ -7,7 +7,6 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY bin/ )
 set (CMAKE_BUILD_TYPE Debug )
 
 include_directories( daemon.out PRIVATE src )
-include_directories( daemon.out PRIVATE common )
 include_directories( daemon.out PRIVATE ../common )
 include_directories( daemon.out PRIVATE ../stateengine/src )
 

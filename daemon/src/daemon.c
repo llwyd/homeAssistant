@@ -44,15 +44,26 @@ DEFINE_STATE(MQTTConnect);
 DEFINE_STATE(Subscribe);
 DEFINE_STATE(Idle);
 
-static char * broker_ip;
-static char * broker_port;
+typedef struct
+{
+    char * name;
+    bool (*event_fn)(comms_t * const comms);
+    event_t event;
+}
+comms_callback_t;
+
 static char * client_name;
 static event_fifo_t events;
 static msg_fifo_t msg_fifo;
 static mqtt_t mqtt;
 
+static comms_t comms;
+
 void Daemon_OnBoardLED( mqtt_data_t * data );
 void Heartbeat( void );
+bool Send(uint8_t * buffer, uint16_t len);
+bool Recv(uint8_t * buffer, uint16_t len);
+
 
 #define NUM_SUBS ( 1U )
 static mqtt_subs_t subs[NUM_SUBS] = 
@@ -60,14 +71,19 @@ static mqtt_subs_t subs[NUM_SUBS] =
     {"debug_led", mqtt_type_bool, Daemon_OnBoardLED},
 };
 
-#define NUM_EVENTS (5)
+#define NUM_COMMS_EVENTS (2)
+static comms_callback_t comms_callback[NUM_COMMS_EVENTS] =
+{
+    {"MQTT Message Received", Comms_MessageReceived, EVENT(MessageReceived)},
+    {"TCP Disconnect", Comms_Disconnected, EVENT(Disconnect)},
+};
+
+#define NUM_EVENTS (3)
 static event_callback_t event_callback[NUM_EVENTS] =
 {
     {"Tick", Timer_Tick1s, EVENT(Tick)},
-    {"MQTT Message Received", Comms_MessageReceived, EVENT(MessageReceived)},
     {"Heartbeat Led", Timer_Tick500ms, EVENT(Heartbeat)},
     {"Homepage Update", Timer_Tick60s, EVENT(UpdateHomepage)},
-    {"TCP Disconnect", Comms_Disconnected, EVENT(Disconnect)},
 };
 
 state_ret_t State_Connect( state_t * this, event_t s )
@@ -79,7 +95,7 @@ state_ret_t State_Connect( state_t * this, event_t s )
     {
         case EVENT( Tick ):         
         case EVENT( Enter ):
-            if( Comms_Connect() )
+            if( Comms_Connect(&comms) )
             {
                 printf("\tTCP Connection successful\n");
                 ret = TRANSITION(this, STATE(MQTTConnect));
@@ -289,6 +305,14 @@ state_ret_t State_Idle( state_t * this, event_t s )
 
 void RefreshEvents( event_fifo_t * events )
 {
+    for( int idx = 0; idx < NUM_COMMS_EVENTS; idx++ )
+    {
+        if( comms_callback[idx].event_fn(&comms) )
+        {
+            FIFO_Enqueue( events, comms_callback[idx].event );
+        }
+    }
+
     for( int idx = 0; idx < NUM_EVENTS; idx++ )
     {
         if( event_callback[idx].event_fn() )
@@ -359,13 +383,16 @@ bool Init( int argc, char ** argv )
     bool name_found = false;
     int input_flags;
 
+    memset(&comms, 0x00, sizeof(comms_t));
+    comms.fifo = &msg_fifo;
+
     while( ( input_flags = getopt( argc, argv, "b:c:" ) ) != -1 )
     {
         switch( input_flags )
         {
             case 'b':
-                broker_ip = optarg;
-                broker_port = "1883";
+                comms.ip = optarg;
+                comms.port = "1883";
                 ip_found = true;
                 break;
             case 'c':
@@ -378,15 +405,16 @@ bool Init( int argc, char ** argv )
     } 
    
     success = ip_found & name_found;
+    
 
     if( success )
     {
         Message_Init(&msg_fifo);
-        Comms_Init(broker_ip, broker_port, &msg_fifo);
+        Comms_Init(&comms);
         mqtt_t mqtt_config = {
             .client_name = client_name,
-            .send = Comms_Send,
-            .recv = Comms_Recv,
+            .send = Send,
+            .recv = Recv,
             .subs = subs,
             .num_subs = NUM_SUBS,
         };
@@ -395,6 +423,16 @@ bool Init( int argc, char ** argv )
     }
 
     return success;
+}
+
+bool Send(uint8_t * buffer, uint16_t len)
+{
+    return Comms_Send(&comms, buffer, len);
+}
+
+bool Recv(uint8_t * buffer, uint16_t len)
+{
+    return Comms_Recv(&comms, buffer, len);
 }
 
 int main( int argc, char ** argv )
