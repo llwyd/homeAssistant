@@ -19,6 +19,29 @@ add_custom_target(meta ALL
     COMMAND ../scripts/generate_meta.sh ../common/
     DEPENDS ../common/meta.h)
 
+add_executable( outside.out
+                src/sensor.c
+                src/sensor.h
+                ../common/mqtt.h
+                ../common/mqtt.c
+                ../common/msg_fifo.h
+                ../common/msg_fifo.c
+                src/outside.c
+                src/timestamp.h
+                src/timestamp.c
+                src/comms.h
+                src/comms.c
+                ../common/events.h
+                ../common/events.c
+                src/timer.h
+                src/timer.c
+                ../stateengine/src/fifo_base.h
+                ../stateengine/src/fifo_base.c
+                ../stateengine/src/state.h
+                ../stateengine/src/state.c
+                ../common/meta.h
+                )
+
 add_executable( daemon.out
                 src/sensor.c
                 src/sensor.h
