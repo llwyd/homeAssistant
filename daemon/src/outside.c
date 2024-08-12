@@ -20,13 +20,53 @@
 #include "msg_fifo.h"
 #include "meta.h"
 
+#define SOCKET_BUFFER_LEN (2048U)
+#define API_PATH_LEN (128U)
+
 static comms_t comms;
 static msg_fifo_t msg_fifo;
 static char * api_key;
 static char * location;
 static char * url = "api.openweathermap.org";
 static char * port = "80";
-static uint8_t getPath[128];
+
+static uint8_t send_buffer[SOCKET_BUFFER_LEN];
+static uint8_t recv_buffer[SOCKET_BUFFER_LEN];
+
+static void GetWeatherInfo(comms_t * const comms)
+{
+    char api_path[API_PATH_LEN];
+    memset(api_path, 0x00, API_PATH_LEN);
+    snprintf(api_path, API_PATH_LEN,"/data/2.5/weather?q=%s&appid=%s",location, api_key);
+
+    memset(send_buffer, 0x00, SOCKET_BUFFER_LEN);
+    memset(recv_buffer, 0x00, SOCKET_BUFFER_LEN);
+    int req_len = snprintf(send_buffer,
+                SOCKET_BUFFER_LEN,
+                "GET %s HTTP/1.1\r\nHost: %s:%s\r\nAccept: */*\r\nUser-Agent: pi\r\n\r\n",api_path , comms->ip ,comms->port);
+
+    printf("%s\n", send_buffer);
+
+    if(Comms_Connect(comms))
+    {
+        /* Connection established */
+        if(Comms_Send(comms, send_buffer, req_len))
+        {
+            (void)Comms_Recv(comms, recv_buffer, SOCKET_BUFFER_LEN);
+            printf("\n%s\n", recv_buffer);
+            Comms_Disconnect(comms);
+        }
+        else
+        {
+            printf("Failed to send\n");
+            Comms_Disconnect(comms);
+        }
+    }
+    else
+    {
+        printf("Failed to connect\n");
+    }
+}
 
 bool Init( int argc, char ** argv )
 {
@@ -65,6 +105,7 @@ bool Init( int argc, char ** argv )
         printf("Weather key: %s\n", api_key);
         Message_Init(&msg_fifo);
         Comms_Init(&comms);
+        GetWeatherInfo(&comms);
     }
 
     return success;

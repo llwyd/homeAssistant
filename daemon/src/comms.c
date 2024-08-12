@@ -174,3 +174,8 @@ bool Comms_RecvToFifo(comms_t * const comms)
     return ret;
 }
 
+void Comms_Disconnect(comms_t * const comms)
+{
+    close(comms->sock);
+}
+
