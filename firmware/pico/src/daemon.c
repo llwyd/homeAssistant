@@ -230,6 +230,7 @@ static state_ret_t State_TCPNotConnected( state_t * this, event_t s )
         case EVENT( TCPConnected ):
         {
             Emitter_Destroy(node_state->retry_timer);
+            FIFO_Flush( &node_state->msg_fifo->base );
             ret = TRANSITION(this, STATE(MQTTNotConnected));
             break;
         }
