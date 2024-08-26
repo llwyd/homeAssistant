@@ -9,6 +9,7 @@
 #include <time.h>
 #include <unistd.h>
 #include "msg_fifo.h"
+#include "fifo_base.h"
 
 #define BUFFER_SIZE (128)
 
@@ -79,6 +80,7 @@ bool Comms_Connect(void)
                 comms_poll.events = POLLIN;
                 ret = true;
                 connected = true;
+                FIFO_Flush(&msg_fifo->base);
             }
         }
     } 
@@ -180,8 +182,8 @@ bool Comms_RecvToFifo(void)
         if( !FIFO_IsFull( &msg_fifo->base ) )
         {
             FIFO_Enqueue( msg_fifo, msg);
+            ret = true;
         }
-        ret = true;
     }
     
     return ret;
