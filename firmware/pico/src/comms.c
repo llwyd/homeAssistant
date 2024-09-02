@@ -99,10 +99,14 @@ static err_t Recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
 extern void Comms_Close(void)
 {
     connected = false;
+    cyw43_arch_lwip_begin();
     err_t close_err = tcp_close(tcp_pcb);
+    cyw43_arch_lwip_end();
     if( close_err != ERR_OK )
     {
+        cyw43_arch_lwip_begin();
         tcp_abort(tcp_pcb);
+        cyw43_arch_lwip_end();
     }
     tcp_pcb = NULL;
 }
@@ -208,7 +212,9 @@ extern bool Comms_TCPInit(void)
 
     /* Attempt connection */
     cyw43_arch_lwip_begin();
+    critical_section_enter_blocking(critical);
     err_t err = tcp_connect(tcp_pcb, &remote_addr, MQTT_PORT, Connected);
+    critical_section_exit(critical);
     cyw43_arch_lwip_end();
 
     if(err==ERR_OK)
