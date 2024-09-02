@@ -27,8 +27,10 @@
 #include "alarm.h"
 #include "eeprom.h"
 #include "meta.h"
+#include "watchdog.h"
 
-#define RETRY_PERIOD_MS (1500)
+#define RETRY_ATTEMPTS (10U)
+#define RETRY_PERIOD_MS (1000)
 #define SENSOR_PERIOD_MS (200)
 
 #define ID_STRING_SIZE ( 32U )
@@ -56,6 +58,7 @@ DEFINE_STATE(MQTTSubscribing);
 typedef struct
 {
     state_t state;
+    uint32_t retry_counter;
     struct repeating_timer * timer;
     struct repeating_timer * read_timer;
     struct repeating_timer * retry_timer;
@@ -297,17 +300,35 @@ static state_ret_t State_MQTTNotConnected( state_t * this, event_t s )
             ret = TRANSITION(this, STATE(TCPNotConnected));
             break;
         }
+        case EVENT(RetryCounterIncrement):
+        {
+            Emitter_Destroy(node_state->retry_timer);
+            node_state->retry_counter++;
+            if(node_state->retry_counter < RETRY_ATTEMPTS)
+            {
+                Emitter_Create(EVENT(RetryCounterIncrement), node_state->retry_timer, RETRY_PERIOD_MS);
+            }
+            else
+            {
+                Emitter_Create(EVENT(MQTTRetryConnect), node_state->retry_timer, RETRY_PERIOD_MS);
+            }
+            ret = HANDLED();
+            break;
+        }
         case EVENT( MQTTRetryConnect ):
         case EVENT( Enter ):
         {
             Emitter_Destroy(node_state->retry_timer);
+            node_state->retry_counter = 0U;
             if(MQTT_Connect(node_state->mqtt))
             {
                 ret = HANDLED();
             }
             else
             {
-                ret = TRANSITION(this, STATE(TCPNotConnected));
+                Emitter_Create(EVENT(RetryCounterIncrement), node_state->retry_timer, RETRY_PERIOD_MS);
+                ret = HANDLED();
+                //ret = TRANSITION(this, STATE(TCPNotConnected));
             }
             break;
         }
@@ -429,15 +450,31 @@ static state_ret_t State_DNSRequest( state_t * this, event_t s )
     node_state_t * node_state = (node_state_t *)this;
     switch(s)
     {
+        case EVENT(RetryCounterIncrement):
+        {
+            Emitter_Destroy(node_state->retry_timer);
+            node_state->retry_counter++;
+            if(node_state->retry_counter < RETRY_ATTEMPTS)
+            {
+                Emitter_Create(EVENT(RetryCounterIncrement), node_state->retry_timer, RETRY_PERIOD_MS);
+            }
+            else
+            {
+                Emitter_Create(EVENT(DNSRetryRequest), node_state->retry_timer, RETRY_PERIOD_MS);
+            }
+            ret = HANDLED();
+            break;
+        }
         case EVENT( DNSRetryRequest ):
         case EVENT( Enter ):
         {
             ret = HANDLED();
             Emitter_Destroy(node_state->retry_timer);
+            node_state->retry_counter = 0U;
             NTP_RequestDNS(node_state->ntp);
             if(WIFI_CheckStatus())
             {
-                Emitter_Create(EVENT(DNSRetryRequest), node_state->retry_timer, RETRY_PERIOD_MS);
+                Emitter_Create(EVENT(RetryCounterIncrement), node_state->retry_timer, RETRY_PERIOD_MS);
             }
             else
             {
@@ -473,14 +510,32 @@ static state_ret_t State_RequestNTP( state_t * this, event_t s )
     node_state_t * node_state = (node_state_t *)this;
     switch(s)
     {
+        case EVENT(RetryCounterIncrement):
+        {
+            ret = HANDLED();
+            Emitter_Destroy(node_state->retry_timer);
+            node_state->retry_counter++;
+            if(node_state->retry_counter < RETRY_ATTEMPTS)
+            {
+                Emitter_Create(EVENT(RetryCounterIncrement), node_state->retry_timer, RETRY_PERIOD_MS);
+            }
+            else
+            {
+                ret = TRANSITION(this, STATE(DNSRequest));
+                //Emitter_Create(EVENT(NTPRetryRequest), node_state->retry_timer, RETRY_PERIOD_MS);
+            }
+            break;
+        }
+        case EVENT( NTPRetryRequest ):
         case EVENT( Enter ):
         {
             ret = HANDLED();
             Emitter_Destroy(node_state->retry_timer);
             NTP_Get(node_state->ntp);
+            node_state->retry_counter = 0U;
             if(WIFI_CheckStatus())
             {
-                Emitter_Create(EVENT(NTPRetryRequest), node_state->retry_timer, RETRY_PERIOD_MS);
+                Emitter_Create(EVENT(RetryCounterIncrement), node_state->retry_timer, RETRY_PERIOD_MS);
             }
             else
             {
@@ -492,11 +547,6 @@ static state_ret_t State_RequestNTP( state_t * this, event_t s )
         case EVENT( Exit ):
         {
             ret = HANDLED();
-            break;
-        }
-        case EVENT( NTPRetryRequest ):
-        {
-            ret = TRANSITION(this, STATE(DNSRequest));
             break;
         }
         case EVENT(NTPReceived):
@@ -596,7 +646,8 @@ static state_ret_t State_Idle( state_t * this, event_t s )
             }
             else
             {
-                ret = TRANSITION(this, STATE(WifiNotConnected));
+                Comms_Close();
+                ret = TRANSITION(this, STATE(TCPNotConnected));
             }
             break;
         }
@@ -667,6 +718,7 @@ extern void Daemon_Run(void)
     critical_section_init_with_lock_num(&crit_msg_fifo, 3U);
     critical_section_init_with_lock_num(&crit_udp_fifo, 4U);
     
+    Watchdog_Init();
     I2C_Init();
     Alarm_Init();
     Enviro_Init();
@@ -674,8 +726,7 @@ extern void Daemon_Run(void)
     Events_Init(&events);
     EEPROM_Read((uint8_t*)unique_id, EEPROM_ENTRY_SIZE, EEPROM_NAME);
     
-
-
+    Watchdog_Kick();
     Message_Init(&msg_fifo, &crit_msg_fifo);
     Message_Init(&udp_fifo, &crit_udp_fifo);
     Comms_Init(&msg_fifo, &crit_tcp);
@@ -686,6 +737,7 @@ extern void Daemon_Run(void)
     WIFI_Init();
 
     node_state_t state_machine; 
+    state_machine.retry_counter = 0U;
     state_machine.timer = &timer;
     state_machine.read_timer = &read_timer;
     state_machine.retry_timer = &retry_timer;
@@ -695,6 +747,7 @@ extern void Daemon_Run(void)
     state_machine.ntp = &ntp;
     state_machine.crit = &crit;
 
+    Watchdog_Kick();
     STATEMACHINE_Init( &state_machine.state, STATE( WifiNotConnected ) );
 
     while( true )
@@ -707,6 +760,7 @@ extern void Daemon_Run(void)
         event_t e = FIFO_Dequeue( &events );
         critical_section_exit(&crit_events);
         STATEMACHINE_Dispatch(&state_machine.state, e);
+        Watchdog_Kick();
     }
 
     /* Shouldn't get here! */

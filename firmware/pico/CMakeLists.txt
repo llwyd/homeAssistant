@@ -50,6 +50,8 @@ add_executable(node
     src/eeprom.h
     src/cli.c
     src/cli.h
+    src/watchdog.c
+    src/watchdog.h
     ../../stateengine/src/state.h
     ../../stateengine/src/state.c
     ../../stateengine/src/fifo_base.h

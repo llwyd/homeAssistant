@@ -10,6 +10,7 @@
     SIG( WifiConnected ) \
     SIG( WifiDisconnected ) \
     SIG( TCPRetryConnect ) \
+    SIG( RetryCounterIncrement ) \
     SIG( TCPConnected ) \
     SIG( TCPDisconnected ) \
     SIG( MessageReceived ) \
