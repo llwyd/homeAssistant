@@ -11,7 +11,7 @@
 
 static ip_addr_t remote_addr;
 static struct tcp_pcb * tcp_pcb;
-static bool connected = false;
+static volatile bool connected = false;
 static msg_fifo_t * msg_fifo;
 static critical_section_t * critical;
 
@@ -232,12 +232,6 @@ extern bool Comms_TCPInit(void)
     else
     {
         printf("\tTCP Initialising failure, Retrying\n");
-        err_t close_err = tcp_close(tcp_pcb);
-        if( close_err != ERR_OK )
-        {
-            tcp_abort(tcp_pcb);
-        }
-        tcp_pcb = NULL;
         ret = false;
     }
 
