@@ -1,6 +1,6 @@
 #include "watchdog.h"
 
-#define TIMEOUT_MS (2500U)
+#define TIMEOUT_MS (6000U)
 
 extern void Watchdog_Init(void)
 {

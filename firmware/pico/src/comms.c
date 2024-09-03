@@ -99,16 +99,20 @@ static err_t Recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
 extern void Comms_Close(void)
 {
     connected = false;
-    cyw43_arch_lwip_begin();
-    err_t close_err = tcp_close(tcp_pcb);
-    cyw43_arch_lwip_end();
-    if( close_err != ERR_OK )
+    if(tcp_pcb != NULL)
     {
+        printf("\tClosing TCP comms\n");
         cyw43_arch_lwip_begin();
-        tcp_abort(tcp_pcb);
+        err_t close_err = tcp_close(tcp_pcb);
         cyw43_arch_lwip_end();
+        if( close_err != ERR_OK )
+        {
+            cyw43_arch_lwip_begin();
+            tcp_abort(tcp_pcb);
+            cyw43_arch_lwip_end();
+        }
+        tcp_pcb = NULL;
     }
-    tcp_pcb = NULL;
 }
 
 static void Error(void *arg, err_t err)
@@ -134,7 +138,7 @@ static err_t Connected(void *arg, struct tcp_pcb *tpcb, err_t err)
     {
         printf("FAIL\n");
     }
-    return ERR_OK;
+    return err;
 }
 
 extern void Comms_MQTTConnect(void)
@@ -184,10 +188,12 @@ extern bool Comms_TCPInit(void)
     bool ret = false;
     connected = false;
 
+    /*
     if(tcp_pcb != NULL )
     {
         Comms_Close();
     }
+    */
 
     /* Init */
     ip4addr_aton((char*)broker_ip, &remote_addr);
@@ -196,20 +202,21 @@ extern bool Comms_TCPInit(void)
     printf("\tAttempting Connection to %s port %d\n", ip4addr_ntoa(&remote_addr), MQTT_PORT);
 
     /* Initialise pcb struct */
-    tcp_pcb = tcp_new_ip_type(IP_GET_TYPE(&remote_addr));
+    tcp_pcb = tcp_new();
     if( tcp_pcb == NULL )
     {
         printf("\tFailed to create\n");
-        assert(false);
+        ret = false;
+        goto init_cleanup;
     }
 
     /* Define Callbacks */
     // tcp_arg
     tcp_sent(tcp_pcb, Sent);
-    //tcp_poll(tcp_pcb, Poll, POLL_PERIOD);
     tcp_recv(tcp_pcb, Recv);
     tcp_err(tcp_pcb, Error);
-
+    tcp_pcb->so_options |= SOF_KEEPALIVE;
+    tcp_pcb->keep_intvl = 200;
     /* Attempt connection */
     cyw43_arch_lwip_begin();
     critical_section_enter_blocking(critical);
@@ -234,6 +241,7 @@ extern bool Comms_TCPInit(void)
         ret = false;
     }
 
+init_cleanup:
     return ret;
 }
 

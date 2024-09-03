@@ -244,21 +244,20 @@ static state_ret_t State_TCPNotConnected( state_t * this, event_t s )
         {
             ret = HANDLED();
             Emitter_Destroy(node_state->retry_timer);
-            if(Comms_TCPInit())
+            if(WIFI_CheckTCPStatus())
             {
-                Emitter_Create(EVENT(TCPRetryConnect), node_state->retry_timer, RETRY_PERIOD_MS);
-            }
-            else
-            {
-                if(WIFI_CheckStatus())
+                if(Comms_TCPInit())
                 {
                     Emitter_Create(EVENT(TCPRetryConnect), node_state->retry_timer, RETRY_PERIOD_MS);
                 }
                 else
                 {
-                    /* Possible WIFI may have failed at this point, re-connect */
-                    ret = TRANSITION(this, STATE(WifiNotConnected));
+                    Emitter_Create(EVENT(TCPRetryConnect), node_state->retry_timer, RETRY_PERIOD_MS);
                 }
+            }
+            else
+            {
+                    ret = TRANSITION(this, STATE(WifiNotConnected));
             }
             break;
         }
@@ -267,6 +266,12 @@ static state_ret_t State_TCPNotConnected( state_t * this, event_t s )
             Emitter_Destroy(node_state->retry_timer);
             FIFO_Flush( &node_state->msg_fifo->base );
             ret = TRANSITION(this, STATE(MQTTNotConnected));
+            break;
+        }
+        case EVENT( TCPDisconnected ):
+        {
+            Comms_Close();
+            ret = HANDLED();
             break;
         }
         case EVENT( Exit ):
@@ -640,6 +645,7 @@ static state_ret_t State_Idle( state_t * this, event_t s )
             char json[64];
             Enviro_GenerateJSON(json, 64);
             bool success = MQTT_Publish(node_state->mqtt,"environment", json);
+            ret = HANDLED();
             if(success)
             {
                 ret = HANDLED();
@@ -718,7 +724,7 @@ extern void Daemon_Run(void)
     critical_section_init_with_lock_num(&crit_msg_fifo, 3U);
     critical_section_init_with_lock_num(&crit_udp_fifo, 4U);
     
-    Watchdog_Init();
+//    Watchdog_Init();
     I2C_Init();
     Alarm_Init();
     Enviro_Init();
@@ -726,7 +732,7 @@ extern void Daemon_Run(void)
     Events_Init(&events);
     EEPROM_Read((uint8_t*)unique_id, EEPROM_ENTRY_SIZE, EEPROM_NAME);
     
-    Watchdog_Kick();
+//    Watchdog_Kick();
     Message_Init(&msg_fifo, &crit_msg_fifo);
     Message_Init(&udp_fifo, &crit_udp_fifo);
     Comms_Init(&msg_fifo, &crit_tcp);
@@ -747,7 +753,7 @@ extern void Daemon_Run(void)
     state_machine.ntp = &ntp;
     state_machine.crit = &crit;
 
-    Watchdog_Kick();
+//    Watchdog_Kick();
     STATEMACHINE_Init( &state_machine.state, STATE( WifiNotConnected ) );
 
     while( true )
@@ -760,7 +766,7 @@ extern void Daemon_Run(void)
         event_t e = FIFO_Dequeue( &events );
         critical_section_exit(&crit_events);
         STATEMACHINE_Dispatch(&state_machine.state, e);
-        Watchdog_Kick();
+//        Watchdog_Kick();
     }
 
     /* Shouldn't get here! */

@@ -20,6 +20,7 @@ extern void WIFI_Init(void)
     {
         assert(false);
     }
+    cyw43_wifi_pm (&cyw43_state,CYW43_PERFORMANCE_PM );
     WIFI_ClearLed();
     cyw43_arch_enable_sta_mode();
     
@@ -38,8 +39,20 @@ extern bool WIFI_CheckStatus(void)
 {
     bool ret = false;
     int status = cyw43_wifi_link_status(&cyw43_state, CYW43_ITF_STA );
-    
+    //int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
     if( status == CYW43_LINK_JOIN )
+    {
+        ret = true;
+    }
+
+    return ret;
+}
+
+extern bool WIFI_CheckTCPStatus(void)
+{
+    bool ret = false;
+    int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
+    if( status == CYW43_LINK_UP )
     {
         ret = true;
     }

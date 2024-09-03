@@ -11,6 +11,7 @@
 
 extern void WIFI_Init(void);
 extern bool WIFI_CheckStatus(void);
+extern bool WIFI_CheckTCPStatus(void);
 extern void WIFI_TryConnect(void);
 extern void WIFI_SetLed(void);
 extern void WIFI_ClearLed(void);
