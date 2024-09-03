@@ -51,8 +51,12 @@ extern bool WIFI_CheckStatus(void)
 extern bool WIFI_CheckTCPStatus(void)
 {
     bool ret = false;
-    int status = cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA);
-    if( status == CYW43_LINK_UP )
+    bool stat_wifi_noip = (cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA) == CYW43_LINK_NOIP);
+    bool stat_wifi_ip = (cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA) == CYW43_LINK_UP);
+    bool stat_wifi = (cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA) == CYW43_LINK_JOIN);
+    
+    int status = stat_wifi || stat_wifi_ip || stat_wifi_noip;
+    if( status )
     {
         ret = true;
     }
