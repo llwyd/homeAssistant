@@ -24,6 +24,7 @@
     SIG( AlarmElapsed ) \
     SIG( HandleCommand ) \
     SIG( HashRequest ) \
+    SIG( TCPRetryClose ) \
 
 GENERATE_SIGNALS( SIGNALS );
 

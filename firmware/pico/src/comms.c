@@ -16,7 +16,7 @@ static msg_fifo_t * msg_fifo;
 static critical_section_t * critical;
 
 static uint8_t broker_ip[EEPROM_ENTRY_SIZE] = {0U};
-
+static volatile bool awaitingAck = false;
 /* LWIP callback functions */
 static err_t Sent(void *arg, struct tcp_pcb *tpcb, u16_t len);
 static err_t Recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
@@ -28,6 +28,8 @@ static err_t Sent(void *arg, struct tcp_pcb *tpcb, u16_t len)
     (void)arg;
     (void)tpcb;
     (void)len;
+    printf("ACK received\n");
+    awaitingAck = false;
     return ERR_OK;
 }
 
@@ -107,11 +109,12 @@ extern void Comms_Close(void)
         cyw43_arch_lwip_end();
         if( close_err != ERR_OK )
         {
-            cyw43_arch_lwip_begin();
-            tcp_abort(tcp_pcb);
-            cyw43_arch_lwip_end();
+            Emitter_EmitEvent(EVENT(TCPRetryClose));
         }
-        tcp_pcb = NULL;
+        else
+        {
+            tcp_pcb = NULL;
+        }
     }
 }
 
@@ -119,7 +122,7 @@ static void Error(void *arg, err_t err)
 {
     (void)arg;
     (void)err;
-    printf("\tTCP Error\n");
+    printf("\tTCP Error (%d)\n", (int16_t)err);
     Emitter_EmitEvent(EVENT(TCPDisconnected));
 }
 
@@ -132,6 +135,7 @@ static err_t Connected(void *arg, struct tcp_pcb *tpcb, err_t err)
     if( err == ERR_OK )
     {
         printf("OK\n");
+        awaitingAck = false;
         Emitter_EmitEvent(EVENT(TCPConnected));
     }
     else
@@ -145,6 +149,11 @@ extern void Comms_MQTTConnect(void)
 {
 }
 
+extern bool CommsBusy(void)
+{
+    return awaitingAck;
+}
+
 extern bool Comms_Send( uint8_t * buffer, uint16_t len )
 {
     cyw43_arch_lwip_begin();
@@ -155,7 +164,7 @@ extern bool Comms_Send( uint8_t * buffer, uint16_t len )
     bool success = true;
     if( err != ERR_OK )
     {
-        printf("\nFailed to write\n");
+        printf("\tFailed to write (%d)\n", (int16_t)err);
         success = false;
         goto cleanup;
     }
@@ -172,6 +181,7 @@ extern bool Comms_Send( uint8_t * buffer, uint16_t len )
         goto cleanup;
     }
     
+    awaitingAck = true;
 cleanup:
     return success;
 }

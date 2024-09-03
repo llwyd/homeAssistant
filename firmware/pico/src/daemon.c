@@ -274,6 +274,12 @@ static state_ret_t State_TCPNotConnected( state_t * this, event_t s )
             ret = HANDLED();
             break;
         }
+        case EVENT( TCPRetryClose ):
+        {
+            Comms_Close();
+            ret = HANDLED();
+            break;
+        }
         case EVENT( Exit ):
         {
             ret = HANDLED();
@@ -644,7 +650,11 @@ static state_ret_t State_Idle( state_t * this, event_t s )
 
             char json[64];
             Enviro_GenerateJSON(json, 64);
-            bool success = MQTT_Publish(node_state->mqtt,"environment", json);
+            bool success = true;
+            if(!CommsBusy())
+            {
+                success = MQTT_Publish(node_state->mqtt,"environment", json);
+            }
             ret = HANDLED();
             if(success)
             {
@@ -652,8 +662,9 @@ static state_ret_t State_Idle( state_t * this, event_t s )
             }
             else
             {
-                Comms_Close();
-                ret = TRANSITION(this, STATE(TCPNotConnected));
+                ret = HANDLED();
+                //Comms_Close();
+                //ret = TRANSITION(this, STATE(TCPNotConnected));
             }
             break;
         }
@@ -766,6 +777,7 @@ extern void Daemon_Run(void)
         event_t e = FIFO_Dequeue( &events );
         critical_section_exit(&crit_events);
         STATEMACHINE_Dispatch(&state_machine.state, e);
+        cyw43_arch_poll();
 //        Watchdog_Kick();
     }
 
