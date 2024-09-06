@@ -98,6 +98,13 @@ static err_t Recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
     return ret;
 }
 
+extern void Comms_Abort(void)
+{
+    cyw43_arch_lwip_begin();
+    tcp_abort(tcp_pcb);
+    tcp_pcb = NULL;
+    cyw43_arch_lwip_end();
+}
 extern void Comms_Close(void)
 {
     connected = false;
@@ -106,13 +113,18 @@ extern void Comms_Close(void)
         printf("\tClosing TCP comms\n");
         cyw43_arch_lwip_begin();
         err_t close_err = tcp_close(tcp_pcb);
+        tcp_abort(tcp_pcb);
         cyw43_arch_lwip_end();
+        
         if( close_err != ERR_OK )
         {
-            Emitter_EmitEvent(EVENT(TCPRetryClose));
+            printf("\tFailed to close (%d)", close_err);
+            Comms_Abort();
+            tcp_pcb = NULL;
         }
         else
         {
+            printf("\tClose Success!\n");
             tcp_pcb = NULL;
         }
     }
@@ -123,7 +135,18 @@ static void Error(void *arg, err_t err)
     (void)arg;
     (void)err;
     printf("\tTCP Error (%d)\n", (int16_t)err);
-    Emitter_EmitEvent(EVENT(TCPDisconnected));
+    switch(err)
+    {
+        case ERR_RST:
+        {
+            Emitter_EmitEvent(EVENT(TCPDisconnected));
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
 }
 
 static err_t Connected(void *arg, struct tcp_pcb *tpcb, err_t err)
@@ -242,6 +265,7 @@ extern bool Comms_TCPInit(void)
     else
     {
         printf("\tTCP Initialising failure, Retrying\n");
+        Emitter_EmitEvent(EVENT(TCPDisconnected));
         ret = false;
     }
 
