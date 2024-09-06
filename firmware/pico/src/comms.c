@@ -16,7 +16,6 @@ static msg_fifo_t * msg_fifo;
 static critical_section_t * critical;
 
 static uint8_t broker_ip[EEPROM_ENTRY_SIZE] = {0U};
-static volatile bool awaitingAck = false;
 /* LWIP callback functions */
 static err_t Sent(void *arg, struct tcp_pcb *tpcb, u16_t len);
 static err_t Recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
@@ -28,7 +27,6 @@ static err_t Sent(void *arg, struct tcp_pcb *tpcb, u16_t len)
     (void)arg;
     (void)tpcb;
     (void)len;
-    awaitingAck = false;
     Emitter_EmitEvent(EVENT(AckReceived));
     return ERR_OK;
 }
@@ -158,7 +156,6 @@ static err_t Connected(void *arg, struct tcp_pcb *tpcb, err_t err)
     if( err == ERR_OK )
     {
         printf("OK\n");
-        awaitingAck = false;
         Emitter_EmitEvent(EVENT(TCPConnected));
     }
     else
@@ -170,11 +167,6 @@ static err_t Connected(void *arg, struct tcp_pcb *tpcb, err_t err)
 
 extern void Comms_MQTTConnect(void)
 {
-}
-
-extern bool CommsBusy(void)
-{
-    return awaitingAck;
 }
 
 extern bool Comms_Send( uint8_t * buffer, uint16_t len )
@@ -204,7 +196,6 @@ extern bool Comms_Send( uint8_t * buffer, uint16_t len )
         goto cleanup;
     }
     
-    awaitingAck = true;
 cleanup:
     return success;
 }
