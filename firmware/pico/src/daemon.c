@@ -29,7 +29,7 @@
 #include "meta.h"
 #include "watchdog.h"
 
-#define RETRY_ATTEMPTS (10U)
+#define RETRY_ATTEMPTS (5U)
 #define RETRY_PERIOD_MS (1000)
 #define SENSOR_PERIOD_MS (200)
 
@@ -251,6 +251,7 @@ static state_ret_t State_TCPNotConnected( state_t * this, event_t s )
             else
             {
                 Emitter_Create(EVENT(TCPRetryConnect), node_state->retry_timer, RETRY_PERIOD_MS);
+                Emitter_EmitEvent(EVENT(TCPDisconnected));
             }
             ret = HANDLED();
             break;
