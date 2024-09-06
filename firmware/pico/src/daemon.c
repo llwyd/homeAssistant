@@ -48,6 +48,7 @@ DEFINE_STATE(WifiNotConnected);
 DEFINE_STATE(DNSRequest);
 DEFINE_STATE(RequestNTP);
 DEFINE_STATE(Idle);
+DEFINE_STATE(AwaitingAck);
 
 /* Third level */
 DEFINE_STATE(TCPNotConnected);
@@ -588,6 +589,8 @@ static state_ret_t State_Root( state_t * this, event_t s )
             Emitter_Create(EVENT(ReadSensor), node_state->read_timer, SENSOR_PERIOD_MS);
             WIFI_SetLed();
             Alarm_Start();
+            Accelerometer_Ack();
+            Accelerometer_Start();
             ret = HANDLED();
             break;
         }
@@ -619,22 +622,36 @@ static state_ret_t State_Idle( state_t * this, event_t s )
         case EVENT( Exit ):
         case EVENT( Enter ):
         {
-            Accelerometer_Ack();
-            Accelerometer_Start();
             ret = HANDLED();
             break;
         }
         case EVENT( AccelMotion ):
         {
             Accelerometer_Ack();
-            MQTT_Publish(node_state->mqtt,"motion","1");
-            ret = HANDLED();
+            bool success = MQTT_Publish(node_state->mqtt,"motion","1");
+            if(success)
+            {
+                ret = TRANSITION(this, STATE(AwaitingAck));
+            }
+            else
+            {
+                Comms_Close();
+                ret = TRANSITION(this, STATE(TCPNotConnected));
+            }
             break;
         }
         case EVENT( HashRequest ):
         {
-            MQTT_Publish(node_state->mqtt,"hash", META_GITHASH);
-            ret = HANDLED();
+            bool success = MQTT_Publish(node_state->mqtt,"hash", META_GITHASH);
+            if(success)
+            {
+                ret = TRANSITION(this, STATE(AwaitingAck));
+            }
+            else
+            {
+                Comms_Close();
+                ret = TRANSITION(this, STATE(TCPNotConnected));
+            }
             break;
         }
         case EVENT( TCPDisconnected ):
@@ -650,21 +667,15 @@ static state_ret_t State_Idle( state_t * this, event_t s )
 
             char json[64];
             Enviro_GenerateJSON(json, 64);
-            bool success = true;
-            if(!CommsBusy())
-            {
-                success = MQTT_Publish(node_state->mqtt,"environment", json);
-            }
-            ret = HANDLED();
+            bool success = MQTT_Publish(node_state->mqtt,"environment", json);
             if(success)
             {
-                ret = HANDLED();
+                ret = TRANSITION(this, STATE(AwaitingAck));
             }
             else
             {
-                ret = HANDLED();
-                //Comms_Close();
-                //ret = TRANSITION(this, STATE(TCPNotConnected));
+                Comms_Close();
+                ret = TRANSITION(this, STATE(TCPNotConnected));
             }
             break;
         }
@@ -683,6 +694,34 @@ static state_ret_t State_Idle( state_t * this, event_t s )
             Enviro_GenerateJSON(json, 64);
             MQTT_Publish(node_state->mqtt,"summary", json);
             ret = HANDLED();
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
+
+    return ret;
+}
+
+static state_ret_t State_AwaitingAck( state_t * this, event_t s )
+{
+    STATE_DEBUG(s);
+    state_ret_t ret = PARENT(this, STATE(Root));
+    node_state_t * node_state = (node_state_t *)this;
+    (void)node_state;
+    switch(s)
+    {
+        case EVENT( Exit ):
+        case EVENT( Enter ):
+        {
+            ret = HANDLED();
+            break;
+        }
+        case EVENT( AckReceived ):
+        {
+            ret = TRANSITION(this, STATE(Idle));
             break;
         }
         default:

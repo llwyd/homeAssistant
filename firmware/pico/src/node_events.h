@@ -25,6 +25,7 @@
     SIG( HandleCommand ) \
     SIG( HashRequest ) \
     SIG( TCPRetryClose ) \
+    SIG( AckReceived ) \
 
 GENERATE_SIGNALS( SIGNALS );
 

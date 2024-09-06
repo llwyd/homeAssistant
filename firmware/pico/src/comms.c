@@ -28,8 +28,8 @@ static err_t Sent(void *arg, struct tcp_pcb *tpcb, u16_t len)
     (void)arg;
     (void)tpcb;
     (void)len;
-    printf("ACK received\n");
     awaitingAck = false;
+    Emitter_EmitEvent(EVENT(AckReceived));
     return ERR_OK;
 }
 
