@@ -44,3 +44,5 @@ common/bme280.h
 common/bme280_defs.h
 common/secret_keys.h
 common/meta.h
+
+data/
