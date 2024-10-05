@@ -9,6 +9,8 @@
 #define BUFFER_SIZE (128)
 #define POLL_PERIOD (5U)
 
+#define MAX_WRITE_FAILS (10U)
+
 static ip_addr_t remote_addr;
 static struct tcp_pcb * tcp_pcb;
 static volatile bool connected = false;
@@ -171,6 +173,8 @@ extern void Comms_MQTTConnect(void)
 
 extern bool Comms_Send( uint8_t * buffer, uint16_t len )
 {
+    static uint32_t failures = 0U;
+
     cyw43_arch_lwip_begin();
     critical_section_enter_blocking(critical);
     err_t err = tcp_write(tcp_pcb, buffer, len, TCP_WRITE_FLAG_COPY);
@@ -180,6 +184,12 @@ extern bool Comms_Send( uint8_t * buffer, uint16_t len )
     if( err != ERR_OK )
     {
         printf("\tFailed to write (%d)\n", (int16_t)err);
+        failures++;
+        if(failures > MAX_WRITE_FAILS)
+        {
+            failures = 0U;
+            Comms_Abort();
+        }
         success = false;
         goto cleanup;
     }
@@ -196,6 +206,8 @@ extern bool Comms_Send( uint8_t * buffer, uint16_t len )
         goto cleanup;
     }
     
+    /* If we got here then we can reset the failure count */
+    failures = 0U;
 cleanup:
     return success;
 }
