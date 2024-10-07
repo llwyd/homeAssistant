@@ -13,6 +13,7 @@ import os
 import subprocess
 import json
 import redis
+import pandas as pd
 
 app = Flask(__name__)
 
@@ -140,6 +141,38 @@ def generate_temp_graph():
     fig.savefig(buf, format='png')
     return base64.b64encode(buf.getbuffer()).decode("ascii")
 
+
+def generate_data_graphs():
+    fig = Figure()
+    ax = fig.subplots()
+
+    todays_date            = dt.datetime.now().strftime('%Y-%m-%d')
+    yesterdays_date        = (dt.datetime.now() - dt.timedelta(days=1)).strftime('%Y-%m-%d') 
+    yesterdays_time        = (dt.datetime.now() - dt.timedelta(days=1)) 
+    
+    todays_data = db.session.query(EnvironmentData).filter( or_(EnvironmentData.datestamp == todays_date, EnvironmentData.datestamp == yesterdays_date)).all()
+
+    df = pd.DataFrame(todays_data)
+    df['temperature'] = df['temperature'].astype(float)
+    df['humidity'] = df['humidity'].astype(float)
+    nodes = df.device_id.unique()
+
+    for node in nodes:
+        data = df[df['device_id'] == node]
+        data = data[data['datestamp'] == test_date]
+        data['datetime'] = data['datestamp'] + " " + data['timestamp'] 
+        d_time = [dt.datetime.strptime(date,'%Y-%m-%d %H:%M') for date in data['datetime']]
+        ax.plot(d_time, np.float32(data['temperature']),label=node)
+    
+    ax.set_title('Temperature')
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Degrees (C)')
+    ax.legend()
+
+    buf = BytesIO()
+    fig.savefig(buf, format='png')
+    return base64.b64encode(buf.getbuffer()).decode("ascii")
+
 def get_environment_data():
     r = redis.StrictRedis(host='localhost', port=6379, db=0)
     data_list = []
@@ -162,7 +195,7 @@ def get_uptime():
 
 @app.route("/")
 def index():
-    graph_image = generate_test_graph()
+    graph_image = generate_data_graphs()
     env_data = get_environment_data()
     last_update = dt.datetime.now().strftime('%Y-%m-%d %H-%M-%S')
 
