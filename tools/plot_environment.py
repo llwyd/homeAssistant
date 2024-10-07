@@ -3,6 +3,7 @@ from matplotlib.figure import Figure
 import numpy as np
 import sqlalchemy as db
 import pandas as pd
+import datetime as dt
 
 engine = db.create_engine('sqlite:///app.db')
 conn = engine.connect()
@@ -22,10 +23,16 @@ df['humidity'] = df['humidity'].astype(float)
 
 nodes = df.device_id.unique()
 
+test_date = "2024-09-30"
+
 for node in nodes:
     data = df[df['device_id'] == node]
-    plt.plot(np.float32(data['temperature']))
+    data = data[data['datestamp'] == test_date]
+    data['datetime'] = data['datestamp'] + " " + data['timestamp'] 
+    d_time = [dt.datetime.strptime(date,'%Y-%m-%d %H:%M') for date in data['datetime']]
+    plt.plot(d_time, np.float32(data['temperature']))
 
 plt.legend(nodes)
+plt.xticks(rotation=45)
 plt.show()
 
