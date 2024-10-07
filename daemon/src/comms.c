@@ -9,32 +9,23 @@
 #include <time.h>
 #include <unistd.h>
 #include "msg_fifo.h"
+#include "fifo_base.h"
 
 #define BUFFER_SIZE (128)
 
-static msg_fifo_t * msg_fifo;
-static char * comms_ip;
-static char * comms_port;
-static int sock;
-static struct pollfd comms_poll;
 static uint8_t recv_buffer[BUFFER_SIZE] = {0U};
-static bool connected = false;
 
-void Comms_Init(char * ip, char * port, msg_fifo_t * fifo)
+void Comms_Init(const comms_t * const comms)
 {
-    assert(ip != NULL);
-    assert(port != NULL);
-    assert(comms_ip == NULL);
-    assert(comms_port == NULL);
+    assert(comms->ip != NULL);
+    assert(comms->port != NULL);
+    assert(comms->fifo != NULL);
 
     printf("Initialising Comms\n");
-    printf("\t%s:%s\n",ip, port);
-    comms_ip = ip;
-    comms_port = port;
-    msg_fifo = fifo;
+    printf("\t%s:%s\n",comms->ip, comms->port);
 }
 
-bool Comms_Connect(void)
+bool Comms_Connect(comms_t * const comms)
 {
     bool ret = false;
     
@@ -48,7 +39,7 @@ bool Comms_Connect(void)
     hints.ai_flags = AI_PASSIVE;
     
     /* 1. Resolve port information */
-    status = getaddrinfo( comms_ip, comms_port, &hints, &servinfo );
+    status = getaddrinfo( comms->ip, comms->port, &hints, &servinfo );
     if( status != 0U )
     {
         fprintf( stderr, "Comms Error: %s\n", gai_strerror( status ) );	
@@ -57,8 +48,8 @@ bool Comms_Connect(void)
     else
     {   
         /* 2. Create Socket */
-        sock = socket( servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
-        if( sock < 0 )
+        comms->sock = socket( servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+        if( comms->sock < 0 )
         {
             printf("Error creating socket\n");
             ret = false;
@@ -66,7 +57,7 @@ bool Comms_Connect(void)
         else
         {
             /* 3. Attempt Connection */
-            int c = connect( sock, servinfo->ai_addr, servinfo->ai_addrlen);
+            int c = connect( comms->sock, servinfo->ai_addr, servinfo->ai_addrlen);
             if( c < 0 )
             {
                 printf("\tConnection Failed\n");
@@ -75,43 +66,49 @@ bool Comms_Connect(void)
             else
             {
                 /* 4. We have liftoff */ 
-                comms_poll.fd = sock;
-                comms_poll.events = POLLIN;
+                comms->poll.fd = comms->sock;
+                comms->poll.events = POLLIN;
+                comms->connected = true;
                 ret = true;
-                connected = true;
+                FIFO_Flush(&comms->fifo->base);
             }
         }
     } 
     return ret;
 }
 
-extern bool Comms_Disconnected(void)
+extern bool Comms_Disconnected(comms_t * const comms)
 {
-    return !connected;
+    if(!comms->connected)
+    {
+        sleep(1U);
+    }
+    return !comms->connected;
 }
-extern bool Comms_MessageReceived(void)
+
+extern bool Comms_MessageReceived(comms_t * const comms)
 {
     bool msg_recvd = false;
     
-    int rv = poll( &comms_poll, 1, 1 );
+    int rv = poll( &comms->poll, 1, 1 );
 
     if( rv & POLLIN )
     {
-        msg_recvd = Comms_RecvToFifo();
+        msg_recvd = Comms_RecvToFifo(comms);
         if(!msg_recvd)
         {
-            connected = false;
+            comms->connected = false;
         }
     }
 
     return msg_recvd;
 }
 
-bool Comms_Send(uint8_t * buffer, uint16_t len)
+bool Comms_Send(comms_t * const comms, uint8_t * buffer, uint16_t len)
 {
     int ret = false;
     /* Send */
-    int snd = send( sock, buffer, len, 0);
+    int snd = send( comms->sock, buffer, len, 0);
     if( snd < 0 )
     {
         printf("\t Error Sending Data\n");
@@ -125,11 +122,11 @@ bool Comms_Send(uint8_t * buffer, uint16_t len)
     return ret;
 }
 
-bool Comms_Recv(uint8_t * buffer, uint16_t len)
+bool Comms_Recv(comms_t * const comms, uint8_t * buffer, uint16_t len)
 {
     bool ret = false;
 
-    int rcv = recv( sock, buffer, len, 0U);
+    int rcv = recv( comms->sock, buffer, len, 0U);
     if( rcv < 0 )
     {
         printf("\tError Sending Data\n");
@@ -148,11 +145,11 @@ bool Comms_Recv(uint8_t * buffer, uint16_t len)
     return ret;
 }
 
-bool Comms_RecvToFifo(void)
+bool Comms_RecvToFifo(comms_t * const comms)
 {
     bool ret = false;
     memset(recv_buffer, 0x00, BUFFER_SIZE);
-    int rcv = recv( sock, recv_buffer, BUFFER_SIZE, 0U);
+    int rcv = recv( comms->sock, recv_buffer, BUFFER_SIZE, 0U);
     if( rcv < 0 )
     {
         printf("\tError Sending Data\n");
@@ -173,11 +170,11 @@ bool Comms_RecvToFifo(void)
             .data = (char *)msg_ptr,
             .len = size_to_copy,
         };
-        if( !FIFO_IsFull( &msg_fifo->base ) )
+        if( !FIFO_IsFull( &comms->fifo->base ) )
         {
-            FIFO_Enqueue( msg_fifo, msg);
+            FIFO_Enqueue( comms->fifo, msg);
+            ret = true;
         }
-        ret = true;
     }
     
     return ret;

@@ -82,11 +82,11 @@ extern bool UDP_Send( uint8_t * buffer, uint16_t len, ip_addr_t ip, uint16_t por
     memcpy(p->payload, buffer, len);
 
 
-    critical_section_enter_blocking(critical);
     cyw43_arch_lwip_begin();
+    critical_section_enter_blocking(critical);
     err_t err = udp_sendto(udp_pcb, p,&ip,port);
-    cyw43_arch_lwip_end();
     critical_section_exit(critical);
+    cyw43_arch_lwip_end();
     
     pbuf_free(p);
     if(err != ERR_OK)

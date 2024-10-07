@@ -5,3 +5,6 @@
 
 ## Minicom
 `sudo minicom -b 115200 -D /dev/ttyACM0`
+
+## Debug
+`arm-none-eabi-gdb -ex "target remote localhost:3333" build/node.elf`

@@ -44,15 +44,35 @@ DEFINE_STATE(MQTTConnect);
 DEFINE_STATE(Subscribe);
 DEFINE_STATE(Idle);
 
-static char * broker_ip;
-static char * broker_port;
+typedef struct
+{
+    char * name;
+    bool (*event_fn)(comms_t * const comms);
+    event_t event;
+}
+comms_callback_t;
+
+#define CONNECT_ATTEMPTS (5U)
+
+typedef struct
+{
+    state_t state;
+    uint32_t retry_count;
+}
+daemon_state_t;
+
 static char * client_name;
 static event_fifo_t events;
 static msg_fifo_t msg_fifo;
 static mqtt_t mqtt;
 
+static comms_t comms;
+
 void Daemon_OnBoardLED( mqtt_data_t * data );
 void Heartbeat( void );
+bool Send(uint8_t * buffer, uint16_t len);
+bool Recv(uint8_t * buffer, uint16_t len);
+
 
 #define NUM_SUBS ( 1U )
 static mqtt_subs_t subs[NUM_SUBS] = 
@@ -60,14 +80,19 @@ static mqtt_subs_t subs[NUM_SUBS] =
     {"debug_led", mqtt_type_bool, Daemon_OnBoardLED},
 };
 
-#define NUM_EVENTS (5)
+#define NUM_COMMS_EVENTS (2)
+static comms_callback_t comms_callback[NUM_COMMS_EVENTS] =
+{
+    {"MQTT Message Received", Comms_MessageReceived, EVENT(MessageReceived)},
+    {"TCP Disconnect", Comms_Disconnected, EVENT(Disconnect)},
+};
+
+#define NUM_EVENTS (3)
 static event_callback_t event_callback[NUM_EVENTS] =
 {
     {"Tick", Timer_Tick1s, EVENT(Tick)},
-    {"MQTT Message Received", Comms_MessageReceived, EVENT(MessageReceived)},
     {"Heartbeat Led", Timer_Tick500ms, EVENT(Heartbeat)},
     {"Homepage Update", Timer_Tick60s, EVENT(UpdateHomepage)},
-    {"TCP Disconnect", Comms_Disconnected, EVENT(Disconnect)},
 };
 
 state_ret_t State_Connect( state_t * this, event_t s )
@@ -75,11 +100,33 @@ state_ret_t State_Connect( state_t * this, event_t s )
     TimeStamp_Print();
     STATE_DEBUG( s );
     state_ret_t ret;
+    daemon_state_t * state = (daemon_state_t *)this;
+
     switch( s )
     {
-        case EVENT( Tick ):         
+        case EVENT( Tick ):
+        {
+            state->retry_count++;
+            if (state->retry_count > CONNECT_ATTEMPTS)
+            {
+                /* Attempt again */
+                state->retry_count = 0U;
+                if( Comms_Connect(&comms) )
+                {
+                    printf("\tTCP Connection successful\n");
+                    ret = TRANSITION(this, STATE(MQTTConnect));
+                }
+                else
+                {
+                    ret = HANDLED();
+                }
+            }
+            break;
+        }
         case EVENT( Enter ):
-            if( Comms_Connect() )
+        {
+            state->retry_count = 0U;
+            if( Comms_Connect(&comms) )
             {
                 printf("\tTCP Connection successful\n");
                 ret = TRANSITION(this, STATE(MQTTConnect));
@@ -89,6 +136,7 @@ state_ret_t State_Connect( state_t * this, event_t s )
                 ret = HANDLED();
             }
             break;
+        }
         case EVENT( Exit ):
             ret = HANDLED();
             break;
@@ -113,10 +161,30 @@ state_ret_t State_MQTTConnect( state_t * this, event_t s )
     TimeStamp_Print();
     STATE_DEBUG( s );
     state_ret_t ret;
+    daemon_state_t * state = (daemon_state_t *)this;
+    
     switch( s )
     {
-        case EVENT( Tick ):         
+        case EVENT( Tick ):
+        {
+            state->retry_count++;
+            if (state->retry_count > CONNECT_ATTEMPTS)
+            {
+                state->retry_count = 0U;
+                if(MQTT_Connect(&mqtt))
+                {
+                    ret = HANDLED();
+                }
+                else
+                {
+                    ret = TRANSITION(this, STATE(Connect));
+                }
+            }
+            break;
+        }
         case EVENT( Enter ):
+        {
+            state->retry_count = 0U;
             if(MQTT_Connect(&mqtt))
             {
                 ret = HANDLED();
@@ -126,6 +194,7 @@ state_ret_t State_MQTTConnect( state_t * this, event_t s )
                 ret = TRANSITION(this, STATE(Connect));
             }
             break;
+        }
         case EVENT( MessageReceived ):
             assert( !FIFO_IsEmpty( &msg_fifo.base ) );
             msg_t msg = FIFO_Dequeue(&msg_fifo);
@@ -141,6 +210,9 @@ state_ret_t State_MQTTConnect( state_t * this, event_t s )
             break;
         case EVENT( Exit ):
             ret = HANDLED();
+            break;
+        case EVENT( Disconnect ):
+            ret = TRANSITION(this, STATE(Connect));
             break;
         case EVENT( Heartbeat ):
             Heartbeat();
@@ -289,6 +361,14 @@ state_ret_t State_Idle( state_t * this, event_t s )
 
 void RefreshEvents( event_fifo_t * events )
 {
+    for( int idx = 0; idx < NUM_COMMS_EVENTS; idx++ )
+    {
+        if( comms_callback[idx].event_fn(&comms) )
+        {
+            FIFO_Enqueue( events, comms_callback[idx].event );
+        }
+    }
+
     for( int idx = 0; idx < NUM_EVENTS; idx++ )
     {
         if( event_callback[idx].event_fn() )
@@ -300,8 +380,9 @@ void RefreshEvents( event_fifo_t * events )
 
 static void Loop( void )
 {
-    state_t daemon; 
-    daemon.state = State_Connect; 
+    static daemon_state_t daemon; 
+    daemon.state.state = State_Connect;
+    daemon.retry_count = 0U;
     event_t sig = EVENT( None );
 
     FIFO_Enqueue( &events, EVENT( Enter ) );
@@ -317,7 +398,7 @@ static void Loop( void )
         sig = FIFO_Dequeue( &events );
 
         /* Dispatch */
-        STATEMACHINE_FlatDispatch( &daemon, sig );
+        STATEMACHINE_FlatDispatch( &daemon.state, sig );
     }
 }
 
@@ -359,13 +440,16 @@ bool Init( int argc, char ** argv )
     bool name_found = false;
     int input_flags;
 
+    memset(&comms, 0x00, sizeof(comms_t));
+    comms.fifo = &msg_fifo;
+
     while( ( input_flags = getopt( argc, argv, "b:c:" ) ) != -1 )
     {
         switch( input_flags )
         {
             case 'b':
-                broker_ip = optarg;
-                broker_port = "1883";
+                comms.ip = optarg;
+                comms.port = "1883";
                 ip_found = true;
                 break;
             case 'c':
@@ -378,15 +462,16 @@ bool Init( int argc, char ** argv )
     } 
    
     success = ip_found & name_found;
+    
 
     if( success )
     {
         Message_Init(&msg_fifo);
-        Comms_Init(broker_ip, broker_port, &msg_fifo);
+        Comms_Init(&comms);
         mqtt_t mqtt_config = {
             .client_name = client_name,
-            .send = Comms_Send,
-            .recv = Comms_Recv,
+            .send = Send,
+            .recv = Recv,
             .subs = subs,
             .num_subs = NUM_SUBS,
         };
@@ -397,10 +482,24 @@ bool Init( int argc, char ** argv )
     return success;
 }
 
+bool Send(uint8_t * buffer, uint16_t len)
+{
+    return Comms_Send(&comms, buffer, len);
+}
+
+bool Recv(uint8_t * buffer, uint16_t len)
+{
+    return Comms_Recv(&comms, buffer, len);
+}
+
 int main( int argc, char ** argv )
 {
-    printf("Git Hash: %s\n", META_GITHASH);
-    printf("Build Time: %s %s\n", META_DATESTAMP, META_TIMESTAMP);
+    printf("!---------------------------!\n");
+    printf("    Home Assistant Daemon\n\n");
+    printf("    Git Hash: %s\n", META_GITHASH);
+    printf("    Build Date: %s\n", META_DATESTAMP);
+    printf("    Build Time: %s\n", META_TIMESTAMP);
+    printf("!---------------------------!\n");
     (void)TimeStamp_Generate();
     Timer_Init();
     Events_Init(&events);
@@ -413,6 +512,9 @@ int main( int argc, char ** argv )
     else
     {
         printf("[CRITICAL ERROR!] FAILED TO INITIALISE\n");
+        printf("Missing flag(s):\n");
+        printf("\t-b\tMQTT broker IP\n");
+        printf("\t-c\tClient Name\n");
     }
     return 0U;
 }

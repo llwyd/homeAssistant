@@ -50,10 +50,12 @@ add_executable(node
     src/eeprom.h
     src/cli.c
     src/cli.h
-    ../../stateengine/src/state.h
-    ../../stateengine/src/state.c
-    ../../stateengine/src/fifo_base.h
-    ../../stateengine/src/fifo_base.c
+    src/watchdog.c
+    src/watchdog.h
+    ../../boilerplate/src/state.h
+    ../../boilerplate/src/state.c
+    ../../boilerplate/src/fifo_base.h
+    ../../boilerplate/src/fifo_base.c
     ../../common/events.h
     ../../common/events.c
     ../../common/bme280.c
@@ -98,10 +100,10 @@ set_source_files_properties(
     src/eeprom.h
     src/cli.c
     src/cli.h
-    ../../stateengine/src/state.h
-    ../../stateengine/src/state.c
-    ../../stateengine/src/fifo_base.h
-    ../../stateengine/src/fifo_base.c
+    ../../boilerplate/src/state.h
+    ../../boilerplate/src/state.c
+    ../../boilerplate/src/fifo_base.h
+    ../../boilerplate/src/fifo_base.c
     ../../common/events.h
     ../../common/events.c
     ../../common/bme280.c
@@ -132,9 +134,9 @@ target_compile_options(node PRIVATE -Wfatal-errors
 target_include_directories(node PRIVATE ${CMAKE_CURRENT_LIST_DIR} )
 include_directories( node PRIVATE src )
 include_directories( node PRIVATE common )
-include_directories( node PRIVATE ../../stateengine )
+include_directories( node PRIVATE ../../boilerplate )
 include_directories( node PRIVATE ../../common )
-include_directories( node PRIVATE ../../stateengine/src )
+include_directories( node PRIVATE ../../boilerplate/src )
 target_link_libraries(node 
     pico_cyw43_arch_lwip_threadsafe_background 
     pico_stdlib 
