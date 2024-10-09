@@ -1,3 +1,4 @@
+#!/bin/python
 from flask import Flask, redirect, render_template, request, url_for
 from flask_sqlalchemy import SQLAlchemy
 #from flask_basicauth import BasicAuth
@@ -33,13 +34,11 @@ class EnvironmentData(db.Model):
     temperature     = db.Column(db.String(16))
     humidity        = db.Column(db.String(16))
 
-#class HumidityData(db.Model):
-#    __tablename__ = "humidity_data"
-#    id              = db.Column(db.Integer, primary_key=True)
-#    device_id       = db.Column(db.String(32))                      # id of the unit
-#    datestamp       = db.Column(db.String(32))                     # datestamp
-#    timestamp       = db.Column(db.String(32))                     # timestamp
-#    humidity        = db.Column(db.String(16))                      # humidity
+    def __init__(self, device_id=None, datestamp=None, timestamp=None, temperature=None, humidity=None):
+        self.data = (device_id, datestamp, timestamp, temperature, humidity)
+
+    def __repr__(self):
+        return (self.device_id, self.datestamp, self.timestamp, self.temperature, self.humidity)
 
 cache_config = {
     "DEBUG": True,         
@@ -151,15 +150,15 @@ def generate_data_graphs():
     yesterdays_time        = (dt.datetime.now() - dt.timedelta(days=1)) 
     
     todays_data = db.session.query(EnvironmentData).filter( or_(EnvironmentData.datestamp == todays_date, EnvironmentData.datestamp == yesterdays_date)).all()
+   
+    df = pd.DataFrame([(data.device_id, data.datestamp, data.timestamp, data.temperature, data.humidity) for data in todays_data], columns=['device_id','datestamp','timestamp','temperature','humidity'])
 
-    df = pd.DataFrame(todays_data)
     df['temperature'] = df['temperature'].astype(float)
     df['humidity'] = df['humidity'].astype(float)
     nodes = df.device_id.unique()
 
     for node in nodes:
         data = df[df['device_id'] == node]
-        data = data[data['datestamp'] == test_date]
         data['datetime'] = data['datestamp'] + " " + data['timestamp'] 
         d_time = [dt.datetime.strptime(date,'%Y-%m-%d %H:%M') for date in data['datetime']]
         ax.plot(d_time, np.float32(data['temperature']),label=node)
@@ -167,6 +166,7 @@ def generate_data_graphs():
     ax.set_title('Temperature')
     ax.set_xlabel('Time')
     ax.set_ylabel('Degrees (C)')
+    ax.tick_params('x', labelrotation=45)
     ax.legend()
 
     buf = BytesIO()
@@ -220,7 +220,7 @@ def handle_environment_data(client,userdata,message):
     node = full_topic.replace('/',' ').split()[-1]
     data_str = message.payload.decode()
     data = json.loads(data_str)
-    print(data)
+    #print(data)
     if( cache.get(node) is not None):
         temp = cache.get(node)
         temp = data
