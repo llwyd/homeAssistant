@@ -158,7 +158,8 @@ def generate_data_graphs():
     nodes = df.device_id.unique()
 
     for node in nodes:
-        data = df[df['device_id'] == node]
+        data = df.copy()
+        data = data[data['device_id'] == node]
         data['datetime'] = data['datestamp'] + " " + data['timestamp'] 
         d_time = [dt.datetime.strptime(date,'%Y-%m-%d %H:%M') for date in data['datetime']]
         ax.plot(d_time, np.float32(data['temperature']),label=node)
