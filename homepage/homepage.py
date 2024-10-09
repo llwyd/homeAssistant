@@ -209,6 +209,15 @@ def index():
                            uptime=uptime,
                            environment=env_data)
 
+@app.route('/dump', methods = ['GET', 'POST'])
+def dump_data():
+    todays_date            = dt.datetime.now().strftime('%Y-%m-%d')
+    yesterdays_date        = (dt.datetime.now() - dt.timedelta(days=1)).strftime('%Y-%m-%d') 
+    yesterdays_time        = (dt.datetime.now() - dt.timedelta(days=1)) 
+    
+    todays_data = db.session.query(EnvironmentData).filter( or_(EnvironmentData.datestamp == todays_date, EnvironmentData.datestamp == yesterdays_date)).all()
+    return render_template("raw_data.html", readings=todays_data)
+
 @mqtt.on_connect()
 def handle_connect(client,userdata,flags,rc):
     print("MQTT Connected")
