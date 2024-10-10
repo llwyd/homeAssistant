@@ -37,32 +37,8 @@
             <hr>
             <div class = "info">
                 <img src="data:image/png;base64, {{graph}}"/>
-
+                <img src="data:image/png;base64, {{hum_graph}}"/>
             </div>
-		<div class="container">
-    <table style ="margin-left:auto;margin-right:auto;">
-        <tr>
-            <th><b>Node</b></th>
-            <th><b>Temperature</b></th>
-            <th><b>Humidity</b></th>
-            <th><b>Uptime</b></th>
-        </tr>
-        {% for data in environment %}
-        {% for key, item in data.items() %}
-        <div class="table">
-            <tr>
-                <td>{{key}}</td>
-                <td>{{item['temperature']}} C</td>
-                <td>{{item['humidity']}} %</td>
-                <td>{{item['uptime_ms']}}</td>
-            </tr>
-        </div>
-        {% endfor %}
-        {% endfor %}
-        </table>
-    </div><!-- /.container -->	
-
-
     </body>
     <footer>
         <hr>
