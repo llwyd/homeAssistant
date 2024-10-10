@@ -13,6 +13,11 @@ class EnvironmentData(db.Model):
 
     def __init__(self, device_id=None, datestamp=None, timestamp=None, temperature=None, humidity=None):
         self.data = (device_id, datestamp, timestamp, temperature, humidity)
+        self.device_id = device_id
+        self.datestamp = datestamp
+        self.timestamp = timestamp
+        self.temperature = temperature
+        self.humidity = humidity
 
     def __repr__(self):
         return (self.device_id, self.datestamp, self.timestamp, self.temperature, self.humidity)
