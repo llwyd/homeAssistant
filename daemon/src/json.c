@@ -19,9 +19,9 @@ extern void JSON_LazyExtract(char * const input, char * const output, char * key
 		p+=(int)strlen(keyword);
 		uint8_t * pch = strchr(p,',');
 		*pch = '\0';
-		strcat(output,p+1);
+		strcat(output,p+2);
 		int stringLen = strlen(output);
-		*(output+stringLen-1) = '\0';
+		*(output+stringLen) = '\0';
 		*pch = ',';
 	}
 }
