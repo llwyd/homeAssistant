@@ -11,12 +11,11 @@
 
 static ip_addr_t remote_addr;
 static struct tcp_pcb * tcp_pcb;
-static bool connected = false;
+static volatile bool connected = false;
 static msg_fifo_t * msg_fifo;
 static critical_section_t * critical;
 
 static uint8_t broker_ip[EEPROM_ENTRY_SIZE] = {0U};
-
 /* LWIP callback functions */
 static err_t Sent(void *arg, struct tcp_pcb *tpcb, u16_t len);
 static err_t Recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err);
@@ -28,6 +27,7 @@ static err_t Sent(void *arg, struct tcp_pcb *tpcb, u16_t len)
     (void)arg;
     (void)tpcb;
     (void)len;
+    Emitter_EmitEvent(EVENT(AckReceived));
     return ERR_OK;
 }
 
@@ -96,23 +96,55 @@ static err_t Recv(void *arg, struct tcp_pcb *tpcb, struct pbuf *p, err_t err)
     return ret;
 }
 
+extern void Comms_Abort(void)
+{
+    cyw43_arch_lwip_begin();
+    tcp_abort(tcp_pcb);
+    tcp_pcb = NULL;
+    cyw43_arch_lwip_end();
+}
 extern void Comms_Close(void)
 {
     connected = false;
-    err_t close_err = tcp_close(tcp_pcb);
-    if( close_err != ERR_OK )
+    if(tcp_pcb != NULL)
     {
+        printf("\tClosing TCP comms\n");
+        cyw43_arch_lwip_begin();
+        err_t close_err = tcp_close(tcp_pcb);
         tcp_abort(tcp_pcb);
+        cyw43_arch_lwip_end();
+        
+        if( close_err != ERR_OK )
+        {
+            printf("\tFailed to close (%d)", close_err);
+            Comms_Abort();
+            tcp_pcb = NULL;
+        }
+        else
+        {
+            printf("\tClose Success!\n");
+            tcp_pcb = NULL;
+        }
     }
-    tcp_pcb = NULL;
 }
 
 static void Error(void *arg, err_t err)
 {
     (void)arg;
     (void)err;
-    printf("\tTCP Error\n");
-    Emitter_EmitEvent(EVENT(TCPDisconnected));
+    printf("\tTCP Error (%d)\n", (int16_t)err);
+    switch(err)
+    {
+        case ERR_RST:
+        {
+            Emitter_EmitEvent(EVENT(TCPDisconnected));
+            break;
+        }
+        default:
+        {
+            break;
+        }
+    }
 }
 
 static err_t Connected(void *arg, struct tcp_pcb *tpcb, err_t err)
@@ -130,7 +162,7 @@ static err_t Connected(void *arg, struct tcp_pcb *tpcb, err_t err)
     {
         printf("FAIL\n");
     }
-    return ERR_OK;
+    return err;
 }
 
 extern void Comms_MQTTConnect(void)
@@ -147,7 +179,7 @@ extern bool Comms_Send( uint8_t * buffer, uint16_t len )
     bool success = true;
     if( err != ERR_OK )
     {
-        printf("\nFailed to write\n");
+        printf("\tFailed to write (%d)\n", (int16_t)err);
         success = false;
         goto cleanup;
     }
@@ -180,10 +212,12 @@ extern bool Comms_TCPInit(void)
     bool ret = false;
     connected = false;
 
+    /*
     if(tcp_pcb != NULL )
     {
         Comms_Close();
     }
+    */
 
     /* Init */
     ip4addr_aton((char*)broker_ip, &remote_addr);
@@ -192,23 +226,26 @@ extern bool Comms_TCPInit(void)
     printf("\tAttempting Connection to %s port %d\n", ip4addr_ntoa(&remote_addr), MQTT_PORT);
 
     /* Initialise pcb struct */
-    tcp_pcb = tcp_new_ip_type(IP_GET_TYPE(&remote_addr));
+    tcp_pcb = tcp_new();
     if( tcp_pcb == NULL )
     {
         printf("\tFailed to create\n");
-        assert(false);
+        ret = false;
+        goto init_cleanup;
     }
 
     /* Define Callbacks */
     // tcp_arg
     tcp_sent(tcp_pcb, Sent);
-    //tcp_poll(tcp_pcb, Poll, POLL_PERIOD);
     tcp_recv(tcp_pcb, Recv);
     tcp_err(tcp_pcb, Error);
-
+    tcp_pcb->so_options |= SOF_KEEPALIVE;
+    tcp_pcb->keep_intvl = 200;
     /* Attempt connection */
     cyw43_arch_lwip_begin();
+    critical_section_enter_blocking(critical);
     err_t err = tcp_connect(tcp_pcb, &remote_addr, MQTT_PORT, Connected);
+    critical_section_exit(critical);
     cyw43_arch_lwip_end();
 
     if(err==ERR_OK)
@@ -219,15 +256,11 @@ extern bool Comms_TCPInit(void)
     else
     {
         printf("\tTCP Initialising failure, Retrying\n");
-        err_t close_err = tcp_close(tcp_pcb);
-        if( close_err != ERR_OK )
-        {
-            tcp_abort(tcp_pcb);
-        }
-        tcp_pcb = NULL;
+        Emitter_EmitEvent(EVENT(TCPDisconnected));
         ret = false;
     }
 
+init_cleanup:
     return ret;
 }
 

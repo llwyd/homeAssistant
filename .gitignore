@@ -12,7 +12,8 @@ daemon/temperature/apikey.h
 daemon/daemon/apikey.h
 daemon/apikeys/apikey.h
 daemon/.vscode
-
+homepage/app/__pycache__/
+homepage/migrations/
 daemon/bin/
 daemon/CMakeCache.txt
 daemon/CMakeFiles/
@@ -31,6 +32,7 @@ network
 network.c
 homepage/devices.py
 homepage/__pycache__/*
+homepage/venv/
 
 *.bin
 firmware/node/user_config.h
@@ -44,3 +46,5 @@ common/bme280.h
 common/bme280_defs.h
 common/secret_keys.h
 common/meta.h
+
+data/

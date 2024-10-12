@@ -21,5 +21,6 @@ extern void Comms_MQTTConnect(void);
 extern bool Comms_Send( uint8_t * buffer, uint16_t len );
 extern bool Comms_Recv( uint8_t * buffer, uint16_t len );
 extern void Comms_Close(void);
+extern void Comms_Abort(void);
 
 #endif /* COMMS_H_ */

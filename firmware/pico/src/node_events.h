@@ -10,6 +10,7 @@
     SIG( WifiConnected ) \
     SIG( WifiDisconnected ) \
     SIG( TCPRetryConnect ) \
+    SIG( RetryCounterIncrement ) \
     SIG( TCPConnected ) \
     SIG( TCPDisconnected ) \
     SIG( MessageReceived ) \
@@ -23,6 +24,8 @@
     SIG( AlarmElapsed ) \
     SIG( HandleCommand ) \
     SIG( HashRequest ) \
+    SIG( TCPRetryClose ) \
+    SIG( AckReceived ) \
 
 GENERATE_SIGNALS( SIGNALS );
 
