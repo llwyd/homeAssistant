@@ -19,6 +19,7 @@
 #include "comms.h"
 #include "msg_fifo.h"
 #include "meta.h"
+#include "json.h"
 
 #define SOCKET_BUFFER_LEN (2048U)
 #define API_PATH_LEN (128U)
@@ -32,6 +33,17 @@ static char * port = "80";
 
 static uint8_t send_buffer[SOCKET_BUFFER_LEN];
 static uint8_t recv_buffer[SOCKET_BUFFER_LEN];
+
+static void ExtractAndPrint(uint8_t * const buffer, char * keyword)
+{
+    assert(buffer != NULL);
+    assert(keyword != NULL);
+
+    char text[32];
+    memset(text,0x00,32);
+    JSON_LazyExtract(recv_buffer, text, keyword);
+    printf("%s: %s\n",keyword, text);
+}
 
 static void GetWeatherInfo(comms_t * const comms)
 {
@@ -53,7 +65,10 @@ static void GetWeatherInfo(comms_t * const comms)
         if(Comms_Send(comms, send_buffer, req_len))
         {
             (void)Comms_Recv(comms, recv_buffer, SOCKET_BUFFER_LEN);
-            printf("\n%s\n", recv_buffer);
+            printf("\n%s\n\n", recv_buffer);
+            ExtractAndPrint(recv_buffer, "description");
+            ExtractAndPrint(recv_buffer, "temp"); 
+            ExtractAndPrint(recv_buffer, "humidity"); 
             Comms_Disconnect(comms);
         }
         else

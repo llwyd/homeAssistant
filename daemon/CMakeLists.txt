@@ -40,6 +40,8 @@ add_executable( outside.out
                 ../boilerplate/src/state.h
                 ../boilerplate/src/state.c
                 ../common/meta.h
+                src/json.h
+                src/json.c
                 )
 
 add_executable( daemon.out
