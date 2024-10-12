@@ -8,7 +8,7 @@ set (CMAKE_BUILD_TYPE Debug )
 
 include_directories( daemon.out PRIVATE src )
 include_directories( daemon.out PRIVATE ../common )
-include_directories( daemon.out PRIVATE ../stateengine/src )
+include_directories( daemon.out PRIVATE ../boilerplate/src )
 
 add_custom_command(
     PRE_BUILD
@@ -35,10 +35,10 @@ add_executable( outside.out
                 ../common/events.c
                 src/timer.h
                 src/timer.c
-                ../stateengine/src/fifo_base.h
-                ../stateengine/src/fifo_base.c
-                ../stateengine/src/state.h
-                ../stateengine/src/state.c
+                ../boilerplate/src/fifo_base.h
+                ../boilerplate/src/fifo_base.c
+                ../boilerplate/src/state.h
+                ../boilerplate/src/state.c
                 ../common/meta.h
                 )
 
@@ -58,10 +58,10 @@ add_executable( daemon.out
                 ../common/events.c
                 src/timer.h
                 src/timer.c
-                ../stateengine/src/fifo_base.h
-                ../stateengine/src/fifo_base.c
-                ../stateengine/src/state.h
-                ../stateengine/src/state.c
+                ../boilerplate/src/fifo_base.h
+                ../boilerplate/src/fifo_base.c
+                ../boilerplate/src/state.h
+                ../boilerplate/src/state.c
                 ../common/meta.h
                 )
 
