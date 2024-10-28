@@ -32,6 +32,28 @@ typedef struct
 }
 settings_t;
 
+static void RefreshEvents( daemon_fifo_t * events )
+{
+    Daemon_RefreshEvents(events);
+}
+
+static void Loop( daemon_fifo_t * fifo )
+{
+    while( 1 )
+    {
+        /* Get Event */    
+        while( FIFO_IsEmpty( (fifo_base_t *)fifo ) )
+        {
+            RefreshEvents( fifo );
+        }
+
+        state_event_t latest = FIFO_Dequeue( fifo );
+
+        /* Dispatch */
+        STATEMACHINE_FlatDispatch( latest.state, latest.event );
+    }
+}
+
 bool HandleArgs( int argc, char ** argv, settings_t * settings )
 {
     assert(settings != NULL);
@@ -105,7 +127,8 @@ int main( int argc, char ** argv )
 
     if( success )
     {
-        Daemon_Init(&settings.daemon);
+        Daemon_Init(&settings.daemon, &event_fifo);
+        Loop(&event_fifo);
     }
     else
     {

@@ -65,6 +65,8 @@ daemon_state_t;
 
 
 daemon_state_t state_machine;
+daemon_fifo_t * event_fifo;
+
 static char * client_name;
 static event_fifo_t events;
 static msg_fifo_t msg_fifo;
@@ -363,13 +365,13 @@ state_ret_t State_Idle( state_t * this, event_t s )
     return ret;
 }
 
-void RefreshEvents( event_fifo_t * events )
+extern void Daemon_RefreshEvents( daemon_fifo_t * events )
 {
     for( int idx = 0; idx < NUM_COMMS_EVENTS; idx++ )
     {
         if( comms_callback[idx].event_fn(&comms) )
         {
-            FIFO_Enqueue( events, comms_callback[idx].event );
+            DaemonEvents_Enqueue( events, Daemon_GetState(), comms_callback[idx].event );
         }
     }
 
@@ -377,32 +379,8 @@ void RefreshEvents( event_fifo_t * events )
     {
         if( event_callback[idx].event_fn() )
         {
-            FIFO_Enqueue( events, event_callback[idx].event );
+            DaemonEvents_Enqueue( events, Daemon_GetState(), event_callback[idx].event );
         }
-    }
-}
-
-static void Loop( void )
-{
-    static daemon_state_t daemon; 
-    daemon.state.state = State_Connect;
-    daemon.retry_count = 0U;
-    event_t sig = EVENT( None );
-
-    FIFO_Enqueue( &events, EVENT( Enter ) );
-
-    while( 1 )
-    {
-        /* Get Event */    
-        while( FIFO_IsEmpty( (fifo_base_t *)&events ) )
-        {
-            RefreshEvents( &events );
-        }
-
-        sig = FIFO_Dequeue( &events );
-
-        /* Dispatch */
-        STATEMACHINE_FlatDispatch( &daemon.state, sig );
     }
 }
 
@@ -452,7 +430,7 @@ extern state_t * const Daemon_GetState(void)
     return &state_machine.state;
 }
 
-extern void Daemon_Init(daemon_settings_t * settings)
+extern void Daemon_Init(daemon_settings_t * settings, daemon_fifo_t * fifo)
 {
     printf("!   Initialising Daemon     !\n");
     printf("!---------------------------!\n");
@@ -460,6 +438,8 @@ extern void Daemon_Init(daemon_settings_t * settings)
     comms.ip = settings->broker_ip;
     comms.port = settings->broker_port;
     comms.fifo = &msg_fifo;
+
+    event_fifo = fifo;
 
     Message_Init(&msg_fifo);
     Comms_Init(&comms);
@@ -472,7 +452,12 @@ extern void Daemon_Init(daemon_settings_t * settings)
     };
     mqtt = mqtt_config;
     MQTT_Init(&mqtt);
-    
+   
+    state_machine.state.state = State_Connect;
+    state_machine.retry_count = 0U;
+
+    DaemonEvents_Enqueue(event_fifo, &state_machine.state, EVENT(Enter));
+
     printf("!---------------------------!\n");
     printf("!   Complete!               !\n");
     printf("!---------------------------!\n");

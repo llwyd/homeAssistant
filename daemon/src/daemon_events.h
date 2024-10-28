@@ -15,7 +15,7 @@ typedef struct
 {
     char * name;
     bool (*event_fn)(void);
-    state_t * (*state_fn)(void);
+    state_t * (*get_state)(void);
     event_t event;
 }
 event_cb_t;

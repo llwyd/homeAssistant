@@ -14,6 +14,7 @@
 #include <assert.h>
 
 #include "fifo_base.h"
+#include "daemon_events.h"
 #include "state.h"
 #include "mqtt.h"
 #include "sensor.h"
@@ -32,6 +33,9 @@ typedef struct
 }
 daemon_settings_t;
 
-extern void Daemon_Init(daemon_settings_t * settings);
+extern void Daemon_Init(daemon_settings_t * settings, daemon_fifo_t * fifo);
+
+extern state_t * const Daemon_GetState(void);
+extern void Daemon_RefreshEvents( daemon_fifo_t * events );
 
 #endif /* DAEMON_SM_H_ */
