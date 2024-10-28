@@ -434,55 +434,6 @@ void Heartbeat( void )
 #endif
 }
 
-bool Init( int argc, char ** argv )
-{
-    bool success = false;
-    bool ip_found = false;
-    bool name_found = false;
-    int input_flags;
-
-    memset(&comms, 0x00, sizeof(comms_t));
-    comms.fifo = &msg_fifo;
-
-    while( ( input_flags = getopt( argc, argv, "b:c:" ) ) != -1 )
-    {
-        switch( input_flags )
-        {
-            case 'b':
-                comms.ip = optarg;
-                comms.port = "1883";
-                ip_found = true;
-                break;
-            case 'c':
-                client_name = optarg;
-                name_found = true;
-                break;
-            default:
-                break;
-        }
-    } 
-   
-    success = ip_found & name_found;
-    
-
-    if( success )
-    {
-        Message_Init(&msg_fifo);
-        Comms_Init(&comms);
-        mqtt_t mqtt_config = {
-            .client_name = client_name,
-            .send = Send,
-            .recv = Recv,
-            .subs = subs,
-            .num_subs = NUM_SUBS,
-        };
-        mqtt = mqtt_config;
-        MQTT_Init(&mqtt);
-    }
-
-    return success;
-}
-
 bool Send(uint8_t * buffer, uint16_t len)
 {
     return Comms_Send(&comms, buffer, len);
@@ -495,6 +446,8 @@ bool Recv(uint8_t * buffer, uint16_t len)
 
 extern void Daemon_Init(daemon_settings_t * settings)
 {
+    printf("!   Initialising Daemon     !\n");
+    printf("!---------------------------!\n");
     memset(&comms, 0x00, sizeof(comms_t));
     comms.ip = settings->broker_ip;
     comms.port = settings->broker_port;
@@ -511,5 +464,9 @@ extern void Daemon_Init(daemon_settings_t * settings)
     };
     mqtt = mqtt_config;
     MQTT_Init(&mqtt);
+    
+    printf("!---------------------------!\n");
+    printf("!   Complete!               !\n");
+    printf("!---------------------------!\n");
 }
 

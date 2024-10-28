@@ -69,13 +69,6 @@ bool HandleArgs( int argc, char ** argv, settings_t * settings )
     settings->weather_enabled = (settings->api_key != NULL) &&
                                 (settings->location != NULL);
 
-    if(settings->weather_enabled)
-    {
-        printf("Weather API enabled\n");
-        printf("\tAPI Key: %s\n", settings->api_key);
-        printf("\tLocation: %s\n", settings->location);
-    }
-
     return success;
 }
 
@@ -95,7 +88,8 @@ static void FailureMessage(void)
     printf("Missing flag(s):\n");
     printf("\t-b\tMQTT broker IP\n");
     printf("\t-c\tClient Name\n");
-    printf("\t-k\tClient Name\n");
+    printf("\t-k\tAPI Key\n");
+    printf("\t-l\tLocation\n");
 }
 
 int main( int argc, char ** argv )
