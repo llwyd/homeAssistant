@@ -18,6 +18,7 @@
 #include <time.h>
 #include <assert.h>
 
+#include "daemon_sm.h"
 #include "fifo_base.h"
 #include "state.h"
 #include "mqtt.h"
@@ -492,30 +493,23 @@ bool Recv(uint8_t * buffer, uint16_t len)
     return Comms_Recv(&comms, buffer, len);
 }
 
-int main( int argc, char ** argv )
+extern void Daemon_Init(daemon_settings_t * settings)
 {
-    printf("!---------------------------!\n");
-    printf("    Home Assistant Daemon\n\n");
-    printf("    Git Hash: %s\n", META_GITHASH);
-    printf("    Build Date: %s\n", META_DATESTAMP);
-    printf("    Build Time: %s\n", META_TIMESTAMP);
-    printf("!---------------------------!\n");
-    (void)TimeStamp_Generate();
-    Timer_Init();
-    Events_Init(&events);
-    bool success = Init( argc, argv );
+    memset(&comms, 0x00, sizeof(comms_t));
+    comms.ip = settings->broker_ip;
+    comms.port = settings->broker_port;
+    comms.fifo = &msg_fifo;
 
-    if( success )
-    {
-        Loop();
-    }
-    else
-    {
-        printf("[CRITICAL ERROR!] FAILED TO INITIALISE\n");
-        printf("Missing flag(s):\n");
-        printf("\t-b\tMQTT broker IP\n");
-        printf("\t-c\tClient Name\n");
-    }
-    return 0U;
+    Message_Init(&msg_fifo);
+    Comms_Init(&comms);
+    mqtt_t mqtt_config = {
+        .client_name = settings->client_name,
+        .send = Send,
+        .recv = Recv,
+        .subs = subs,
+        .num_subs = NUM_SUBS,
+    };
+    mqtt = mqtt_config;
+    MQTT_Init(&mqtt);
 }
 

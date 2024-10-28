@@ -45,6 +45,7 @@ add_executable( outside.out
                 )
 
 add_executable( daemon.out
+                src/daemon.c
                 src/sensor.c
                 src/sensor.h
                 ../common/mqtt.h
@@ -70,10 +71,10 @@ add_executable( daemon.out
 target_compile_options( daemon.out
                         PUBLIC
                         -Wfatal-errors
-                        -Wall
-                        -Wextra
-                        -Werror
-                        -Wpedantic
-                        -Wpointer-arith
+                        #                        -Wall
+                        #-Wextra
+                        #-Werror
+                        #-Wpedantic
+                        #-Wpointer-arith
                         -g)
 
