@@ -51,7 +51,7 @@ add_executable( daemon.out
                 ../common/mqtt.c
                 ../common/msg_fifo.h
                 ../common/msg_fifo.c
-                src/daemon.c
+                src/daemon_sm.c
                 src/timestamp.h
                 src/timestamp.c
                 src/comms.h
