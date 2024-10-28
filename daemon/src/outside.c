@@ -81,6 +81,7 @@ static void GetWeatherInfo(comms_t * const comms)
     {
         printf("Failed to connect\n");
     }
+    Comms_Disconnect(comms);
 }
 
 bool Init( int argc, char ** argv )
