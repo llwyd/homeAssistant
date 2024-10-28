@@ -19,6 +19,7 @@
 #include <assert.h>
 
 #include "daemon_sm.h"
+#include "daemon_events.h"
 #include "fifo_base.h"
 #include "state.h"
 #include "mqtt.h"
@@ -62,6 +63,8 @@ typedef struct
 }
 daemon_state_t;
 
+
+daemon_state_t state_machine;
 static char * client_name;
 static event_fifo_t events;
 static msg_fifo_t msg_fifo;
@@ -442,6 +445,11 @@ bool Send(uint8_t * buffer, uint16_t len)
 bool Recv(uint8_t * buffer, uint16_t len)
 {
     return Comms_Recv(&comms, buffer, len);
+}
+
+extern state_t * const Daemon_GetState(void)
+{
+    return &state_machine.state;
 }
 
 extern void Daemon_Init(daemon_settings_t * settings)

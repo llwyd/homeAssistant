@@ -46,6 +46,8 @@ add_executable( outside.out
 
 add_executable( daemon.out
                 src/daemon.c
+                src/daemon_events.c
+                src/daemon_events.h
                 src/sensor.c
                 src/sensor.h
                 ../common/mqtt.h

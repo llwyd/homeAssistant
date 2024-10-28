@@ -11,6 +11,7 @@
 #include <assert.h>
 
 #include "daemon_sm.h"
+#include "daemon_events.h"
 #include "fifo_base.h"
 #include "state.h"
 #include "mqtt.h"
@@ -30,7 +31,6 @@ typedef struct
     bool weather_enabled;
 }
 settings_t;
-
 
 bool HandleArgs( int argc, char ** argv, settings_t * settings )
 {
@@ -95,12 +95,13 @@ static void FailureMessage(void)
 int main( int argc, char ** argv )
 {
     static settings_t settings;
-    
-    (void)TimeStamp_Generate();
-    Timer_Init();
-    
+    daemon_fifo_t event_fifo;
+ 
     WelcomeMessage();
     bool success = HandleArgs( argc, argv, &settings);
+    DaemonEvents_Init(&event_fifo);
+    (void)TimeStamp_Generate();
+    Timer_Init();
 
     if( success )
     {
