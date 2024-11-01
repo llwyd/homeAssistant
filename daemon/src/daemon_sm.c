@@ -64,8 +64,8 @@ typedef struct
 daemon_state_t;
 
 
-daemon_state_t state_machine;
-daemon_fifo_t * event_fifo;
+static daemon_state_t state_machine;
+static daemon_fifo_t * event_fifo;
 
 static char * client_name;
 static event_fifo_t events;
@@ -432,6 +432,7 @@ extern state_t * const Daemon_GetState(void)
 
 extern void Daemon_Init(daemon_settings_t * settings, daemon_fifo_t * fifo)
 {
+    printf("!---------------------------!\n");
     printf("!   Initialising Daemon     !\n");
     printf("!---------------------------!\n");
     memset(&comms, 0x00, sizeof(comms_t));
@@ -463,3 +464,7 @@ extern void Daemon_Init(daemon_settings_t * settings, daemon_fifo_t * fifo)
     printf("!---------------------------!\n");
 }
 
+extern mqtt_t * const Daemon_GetMQTT(void)
+{
+    return &mqtt;
+}

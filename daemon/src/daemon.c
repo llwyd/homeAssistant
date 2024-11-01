@@ -11,6 +11,7 @@
 #include <assert.h>
 
 #include "daemon_sm.h"
+#include "comms_sm.h"
 #include "daemon_events.h"
 #include "fifo_base.h"
 #include "state.h"
@@ -25,16 +26,24 @@
 
 typedef struct
 {
-    daemon_settings_t daemon; 
+    daemon_settings_t daemon;
+    comms_settings_t comms;
     char * api_key;
     char * location;
     bool weather_enabled;
 }
 settings_t;
 
+#define NUM_CLIENTS (1U)
+static comms_client_t comms_client[NUM_CLIENTS] =
+{
+    {.get_state = Daemon_GetState, .get_mqtt = Daemon_GetMQTT}
+};
+
 static void RefreshEvents( daemon_fifo_t * events )
 {
-    Daemon_RefreshEvents(events);
+    //Daemon_RefreshEvents(events);
+    CommsSM_RefreshEvents(events);
 }
 
 static void Loop( daemon_fifo_t * fifo )
@@ -69,6 +78,9 @@ bool HandleArgs( int argc, char ** argv, settings_t * settings )
             case 'b':
                 settings->daemon.broker_ip = optarg;
                 settings->daemon.broker_port = "1883";
+
+                settings->comms.ip = optarg;
+                settings->comms.port = "1883";
                 break;
             case 'c':
                 settings->daemon.client_name = optarg;
@@ -118,16 +130,20 @@ int main( int argc, char ** argv )
 {
     static settings_t settings;
     daemon_fifo_t event_fifo;
- 
+    msg_fifo_t msg_fifo;
+
     WelcomeMessage();
     bool success = HandleArgs( argc, argv, &settings);
+    settings.comms.msg_fifo = &msg_fifo;
+    
     DaemonEvents_Init(&event_fifo);
     (void)TimeStamp_Generate();
     Timer_Init();
 
     if( success )
     {
-        Daemon_Init(&settings.daemon, &event_fifo);
+        CommsSM_Init(&settings.comms, &event_fifo);
+        //Daemon_Init(&settings.daemon, &event_fifo);
         Loop(&event_fifo);
     }
     else

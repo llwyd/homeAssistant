@@ -11,6 +11,14 @@
 
 #define FIFO_LEN (32U)
 
+#define SIGNALS(SIG ) \
+    SIG( BrokerConnected ) \
+    SIG( MQTTMessageReceived ) \
+    SIG( BrokerDisconnected ) \
+
+GENERATE_SIGNALS( SIGNALS );
+GENERATE_SIGNAL_STRINGS( SIGNALS );
+
 typedef struct
 {
     char * name;

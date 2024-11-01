@@ -1,5 +1,5 @@
-#ifndef DAEMON_SM_H_
-#define DAEMON_SM_H_
+#ifndef COMMS_SM_H_
+#define COMMS_SM_H_
 
 #include <errno.h>
 #include <inttypes.h>
@@ -27,16 +27,22 @@
 
 typedef struct
 {
-    char * broker_ip;
-    char * broker_port;
-    char * client_name;
+    char * ip;
+    char * port;
+    msg_fifo_t * msg_fifo;
 }
-daemon_settings_t;
+comms_settings_t;
 
-extern void Daemon_Init(daemon_settings_t * settings, daemon_fifo_t * fifo);
+typedef struct
+{
+    state_t * (*get_state)(void);
+    mqtt_t * (*get_mqtt)(void);
+}
+comms_client_t;
 
-extern state_t * const Daemon_GetState(void);
-extern mqtt_t * const Daemon_GetMQTT(void);
-extern void Daemon_RefreshEvents( daemon_fifo_t * events );
+extern void CommsSM_Init(comms_settings_t * settings, daemon_fifo_t * fifo);
 
-#endif /* DAEMON_SM_H_ */
+extern state_t * const CommsSM_GetState(void);
+extern void CommsSM_RefreshEvents( daemon_fifo_t * events );
+
+#endif /* COMMS_SM_H_ */
