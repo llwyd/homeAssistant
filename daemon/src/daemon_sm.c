@@ -85,13 +85,6 @@ static mqtt_subs_t subs[NUM_SUBS] =
     {"debug_led", mqtt_type_bool, Daemon_OnBoardLED},
 };
 
-#define NUM_COMMS_EVENTS (2)
-static comms_callback_t comms_callback[NUM_COMMS_EVENTS] =
-{
-    {"MQTT Message Received", Comms_MessageReceived, EVENT(MessageReceived)},
-    {"TCP Disconnect", Comms_Disconnected, EVENT(Disconnect)},
-};
-
 #define NUM_EVENTS (3)
 static event_callback_t event_callback[NUM_EVENTS] =
 {
@@ -112,7 +105,7 @@ state_ret_t State_AwaitingConnection( state_t * this, event_t s )
             ret = HANDLED();
             break;
         case EVENT( BrokerConnected ):
-            ret = TRANSITION(this, STATE(Subscribe));
+            ret = TRANSITION(this, STATE(Idle));
             break;
         default:
             break;
@@ -129,40 +122,11 @@ state_ret_t State_Subscribe( state_t * this, event_t s )
     switch( s )
     {
         case EVENT( Enter ):
-            if( MQTT_Subscribe(&mqtt) )
-            {
-                ret = HANDLED();
-            }
-            else
-            {
-                ret = TRANSITION(this, STATE(AwaitingConnection) );
-            }
-            break;
         case EVENT( Exit ):
             ret = HANDLED();
             break;
         case EVENT( Disconnect ):
             ret = TRANSITION(this, STATE(AwaitingConnection));
-            break;
-        case EVENT( MessageReceived ):
-            assert( !FIFO_IsEmpty( &msg_fifo.base ) );
-            msg_t msg = FIFO_Dequeue(&msg_fifo);
-            if( MQTT_HandleMessage(&mqtt, (uint8_t*)msg.data) )
-            {
-                if( MQTT_AllSubscribed(&mqtt) )
-                {
-                    ret = TRANSITION(this, STATE(Idle) );
-                }
-                else
-                {
-                    ret = HANDLED();
-                }
-            }
-            else
-            {
-                ret = TRANSITION(this, STATE(AwaitingConnection) );
-            }
-
             break;
         case EVENT( Heartbeat ):
             Heartbeat();
@@ -216,19 +180,6 @@ state_ret_t State_Idle( state_t * this, event_t s )
                 }
             }
             break;
-        case EVENT( MessageReceived ):
-            /* Need to check whether event disconnected */
-            assert( !FIFO_IsEmpty( &msg_fifo.base ) );
-            msg_t msg = FIFO_Dequeue(&msg_fifo);
-            if( MQTT_HandleMessage(&mqtt, (uint8_t *)msg.data) )
-            {
-                ret = HANDLED();
-            }
-            else
-            {
-                ret = TRANSITION(this, STATE(AwaitingConnection) );
-            }
-            break;
         case EVENT( Disconnect ):
             ret = TRANSITION(this, STATE(AwaitingConnection));
             break;
@@ -245,6 +196,7 @@ state_ret_t State_Idle( state_t * this, event_t s )
 
 extern void Daemon_RefreshEvents( daemon_fifo_t * events )
 {
+    /*
     for( int idx = 0; idx < NUM_COMMS_EVENTS; idx++ )
     {
         if( comms_callback[idx].event_fn(comms) )
@@ -252,7 +204,7 @@ extern void Daemon_RefreshEvents( daemon_fifo_t * events )
             DaemonEvents_Enqueue( events, Daemon_GetState(), comms_callback[idx].event );
         }
     }
-
+*/
     for( int idx = 0; idx < NUM_EVENTS; idx++ )
     {
         if( event_callback[idx].event_fn() )
@@ -341,3 +293,9 @@ extern mqtt_t * const Daemon_GetMQTT(void)
 {
     return &mqtt;
 }
+
+extern char * Daemon_GetName(void)
+{
+    return client_name;
+}
+

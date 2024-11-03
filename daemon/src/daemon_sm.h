@@ -36,6 +36,7 @@ daemon_settings_t;
 extern void Daemon_Init(daemon_settings_t * settings, comms_t * tcp_comms, daemon_fifo_t * fifo);
 
 extern state_t * const Daemon_GetState(void);
+extern char * const Daemon_GetName(void);
 extern mqtt_t * const Daemon_GetMQTT(void);
 extern void Daemon_RefreshEvents( daemon_fifo_t * events );
 

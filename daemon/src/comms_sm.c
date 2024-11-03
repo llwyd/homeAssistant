@@ -158,18 +158,29 @@ state_ret_t State_Connected( state_t * this, event_t s )
     {
         case EVENT( Enter ):
             DaemonEvents_BroadcastEvent(event_fifo, EVENT(BrokerConnected));
-            ret = HANDLED();
+            if( MQTT_Subscribe(&mqtt) )
+            {
+                ret = HANDLED();
+            }
+            else
+            {
+                ret = TRANSITION(this, STATE(TCPConnect) );
+            }
             break;
         case EVENT( Exit ):
             ret = HANDLED();
             break;
         case EVENT( MessageReceived ):
-            /* Need to check whether event disconnected */
-            /*
-            assert( !FIFO_IsEmpty( &msg_fifo.base ) );
-            msg_t msg = FIFO_Dequeue(&msg_fifo);
-            */
-            ret = HANDLED();
+            assert( !FIFO_IsEmpty( &comms->fifo->base ) );
+            msg_t msg = FIFO_Dequeue(comms->fifo);
+            if( MQTT_HandleMessage(&mqtt, (uint8_t *)msg.data) )
+            {
+                ret = HANDLED();
+            }
+            else
+            {
+                ret = TRANSITION(this, STATE(TCPConnect) );
+            }
             break;
         case EVENT( Disconnect ):
             ret = TRANSITION(this, STATE(TCPConnect));
@@ -202,7 +213,7 @@ extern void CommsSM_Init(comms_settings_t * settings, comms_t * tcp_comms, daemo
     Message_Init(comms->fifo);
     
     mqtt = (mqtt_t){
-        .client_name = "comms_daemon",
+        .client_name = settings->client_name,
         .send = Send,
         .recv = Recv,
         .subs = subs,

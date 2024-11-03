@@ -38,13 +38,13 @@ settings_t;
 #define NUM_CLIENTS (1U)
 static comms_client_t comms_client[NUM_CLIENTS] =
 {
-    {.get_state = Daemon_GetState, .get_mqtt = Daemon_GetMQTT}
+    {.get_state = Daemon_GetState, .get_name = Daemon_GetName}
 };
 
 static void RefreshEvents( daemon_fifo_t * events )
 {
-    //Daemon_RefreshEvents(events);
     CommsSM_RefreshEvents(events);
+    Daemon_RefreshEvents(events);
 }
 
 static void Loop( daemon_fifo_t * fifo )
@@ -85,6 +85,7 @@ bool HandleArgs( int argc, char ** argv, settings_t * settings )
                 break;
             case 'c':
                 settings->daemon.client_name = optarg;
+                settings->comms.client_name = optarg;
                 break;
             case 'k':
                 settings->api_key = optarg;

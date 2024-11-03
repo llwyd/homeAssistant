@@ -29,13 +29,14 @@ typedef struct
 {
     char * ip;
     char * port;
+    char * client_name;
 }
 comms_settings_t;
 
 typedef struct
 {
     state_t * (*get_state)(void);
-    mqtt_t * (*get_mqtt)(void);
+    char * (*get_name)(void);
 }
 comms_client_t;
 
