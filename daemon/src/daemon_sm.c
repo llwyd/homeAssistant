@@ -76,8 +76,8 @@ static comms_t comms;
 
 void Daemon_OnBoardLED( mqtt_data_t * data );
 void Heartbeat( void );
-bool Send(uint8_t * buffer, uint16_t len);
-bool Recv(uint8_t * buffer, uint16_t len);
+static bool Send(uint8_t * buffer, uint16_t len);
+static bool Recv(uint8_t * buffer, uint16_t len);
 
 
 #define NUM_SUBS ( 1U )
@@ -415,12 +415,12 @@ void Heartbeat( void )
 #endif
 }
 
-bool Send(uint8_t * buffer, uint16_t len)
+static bool Send(uint8_t * buffer, uint16_t len)
 {
     return Comms_Send(&comms, buffer, len);
 }
 
-bool Recv(uint8_t * buffer, uint16_t len)
+static bool Recv(uint8_t * buffer, uint16_t len)
 {
     return Comms_Recv(&comms, buffer, len);
 }

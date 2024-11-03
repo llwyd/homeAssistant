@@ -1,8 +1,13 @@
 #include "comms_sm.h"
 #include "comms.h"
 
-DEFINE_STATE(Connect);
+/* Top level states */
+DEFINE_STATE(NotConnected);
 DEFINE_STATE(Connected);
+
+/* sub states */
+DEFINE_STATE(TCPConnect);
+DEFINE_STATE(MQTTConnect);
 
 typedef struct
 {
@@ -19,23 +24,56 @@ typedef struct
 }
 comms_callback_t;
 
-static comms_t comms;
+void BlankCallback(mqtt_data_t * data);
+
+#define NUM_SUBS ( 1U )
+static mqtt_subs_t subs[NUM_SUBS] = 
+{
+    {"blank_callback", mqtt_type_bool, BlankCallback},
+};
+
+static comms_t * comms;
 static comms_state_t state_machine;
 static daemon_fifo_t * event_fifo;
+static mqtt_t mqtt;
 
 #define NUM_COMMS_EVENTS (2)
 static comms_callback_t comms_callback[NUM_COMMS_EVENTS] =
 {
     {"MQTT Message Received", Comms_MessageReceived, EVENT(MessageReceived)},
-    {"TCP Disconnect", Comms_Disconnected, EVENT(BrokerDisconnected)},
+    {"TCP Disconnect", Comms_Disconnected, EVENT(Disconnect)},
 };
 
-state_ret_t State_Connect( state_t * this, event_t s )
+void BlankCallback(mqtt_data_t * data)
 {
-    TimeStamp_Print();
-    printf("[COMMS] ");
+    (void)data;
+    printf("Callback\n");
+}
+
+state_ret_t State_NotConnected( state_t * this, event_t s )
+{
     STATE_DEBUG( s );
-    state_ret_t ret;
+    state_ret_t ret = NO_PARENT(this);
+    comms_state_t * state = (comms_state_t *)this;
+
+    switch( s )
+    {
+        case EVENT( Enter ):
+        case EVENT( Exit ):
+            ret = HANDLED();
+            break;
+        default:
+            break;
+    }
+
+    return ret;
+
+}
+
+state_ret_t State_TCPConnect( state_t * this, event_t s )
+{
+    STATE_DEBUG( s );
+    state_ret_t ret = PARENT(this, STATE(NotConnected));
     comms_state_t * state = (comms_state_t *)this;
 
     switch( s )
@@ -43,11 +81,11 @@ state_ret_t State_Connect( state_t * this, event_t s )
         case EVENT( Enter ):
         {
             state->retry_count = 0U;
-            if( Comms_Connect(&comms) )
+            if( Comms_Connect(comms) )
             {
                 printf("\tTCP Connection successful\n");
                 DaemonEvents_BroadcastEvent(event_fifo, EVENT(TCPConnected));
-                ret = TRANSITION(this, STATE(Connected));
+                ret = TRANSITION(this, STATE(MQTTConnect));
             }
             else
             {
@@ -58,11 +96,7 @@ state_ret_t State_Connect( state_t * this, event_t s )
         case EVENT( Exit ):
             ret = HANDLED();
             break;
-        case EVENT( None ):
-            assert(false);
-            break;
         default:
-            ret = HANDLED();
             break;
     }
 
@@ -70,12 +104,57 @@ state_ret_t State_Connect( state_t * this, event_t s )
     
 }
 
+state_ret_t State_MQTTConnect( state_t * this, event_t s )
+{
+    STATE_DEBUG( s );
+    state_ret_t ret = PARENT(this, STATE(NotConnected));
+    comms_state_t * state = (comms_state_t *)this;
+
+    switch( s )
+    {
+        case EVENT( Enter ):
+        {
+            if(MQTT_Connect(&mqtt))
+            {
+                ret = HANDLED();
+            }
+            else
+            {
+                ret = TRANSITION(this, STATE(TCPConnect));
+            }
+            break;
+        }
+        case EVENT( Exit ):
+            ret = HANDLED();
+            break;
+        
+        case EVENT( MessageReceived ):
+            assert( !FIFO_IsEmpty( &comms->fifo->base ) );
+            msg_t msg = FIFO_Dequeue(comms->fifo);
+            if( MQTT_HandleMessage(&mqtt, (uint8_t*)msg.data) )
+            {
+                ret = TRANSITION(this, STATE(Connected) );
+            }
+            else
+            {
+                ret = HANDLED();
+            }
+
+            break;
+        case EVENT( Disconnect ):
+            ret = TRANSITION(this, STATE(TCPConnect));
+            break;
+        default:
+            break;
+    }
+
+    return ret;
+}
+
 state_ret_t State_Connected( state_t * this, event_t s )
 {
-    TimeStamp_Print();
-    printf("[COMMS] ");
     STATE_DEBUG( s );
-    state_ret_t ret;
+    state_ret_t ret = NO_PARENT(this);
     switch( s )
     {
         case EVENT( Enter ):
@@ -91,35 +170,45 @@ state_ret_t State_Connected( state_t * this, event_t s )
             ret = HANDLED();
             break;
         case EVENT( Disconnect ):
-            ret = TRANSITION(this, STATE(Connect));
-            break;
-        case EVENT( None ):
-            assert(false);
+            ret = TRANSITION(this, STATE(TCPConnect));
             break;
         default:
-            ret = HANDLED();
             break;
     }
 
     return ret;
 }
 
-extern void CommsSM_Init(comms_settings_t * settings, daemon_fifo_t * fifo)
+static bool Send(uint8_t * buffer, uint16_t len)
+{
+    return Comms_Send(comms, buffer, len);
+}
+
+static bool Recv(uint8_t * buffer, uint16_t len)
+{
+    return Comms_Recv(comms, buffer, len);
+}
+
+extern void CommsSM_Init(comms_settings_t * settings, comms_t * tcp_comms, daemon_fifo_t * fifo)
 {
     printf("!---------------------------!\n");
     printf("!   Init Comms SM           !\n");
     printf("!---------------------------!\n");
-    memset(&comms, 0x00, sizeof(comms_t));
-    comms.ip = settings->ip;
-    comms.port = settings->port;
-    comms.fifo = settings->msg_fifo;
 
+    comms = tcp_comms;
     event_fifo = fifo;
-
-    Message_Init(settings->msg_fifo);
-    Comms_Init(&comms);
+    Message_Init(comms->fifo);
+    
+    mqtt = (mqtt_t){
+        .client_name = "comms_daemon",
+        .send = Send,
+        .recv = Recv,
+        .subs = subs,
+        .num_subs = NUM_SUBS,
+    };
+    MQTT_Init(&mqtt);
    
-    state_machine.state.state = State_Connect;
+    state_machine.state.state = State_TCPConnect;
     state_machine.retry_count = 0U;
     DaemonEvents_Enqueue(event_fifo, &state_machine.state, EVENT(Enter));
 
@@ -138,7 +227,7 @@ extern void CommsSM_RefreshEvents( daemon_fifo_t * events )
 {
     for( int idx = 0; idx < NUM_COMMS_EVENTS; idx++ )
     {
-        if( comms_callback[idx].event_fn(&comms) )
+        if( comms_callback[idx].event_fn(comms) )
         {
             DaemonEvents_Enqueue( events, CommsSM_GetState(), comms_callback[idx].event );
         }

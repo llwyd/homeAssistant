@@ -29,7 +29,6 @@ typedef struct
 {
     char * ip;
     char * port;
-    msg_fifo_t * msg_fifo;
 }
 comms_settings_t;
 
@@ -40,7 +39,7 @@ typedef struct
 }
 comms_client_t;
 
-extern void CommsSM_Init(comms_settings_t * settings, daemon_fifo_t * fifo);
+extern void CommsSM_Init(comms_settings_t * settings, comms_t * comms, daemon_fifo_t * fifo);
 
 extern state_t * const CommsSM_GetState(void);
 extern void CommsSM_RefreshEvents( daemon_fifo_t * events );

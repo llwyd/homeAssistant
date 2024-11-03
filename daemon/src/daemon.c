@@ -60,7 +60,7 @@ static void Loop( daemon_fifo_t * fifo )
         state_event_t latest = FIFO_Dequeue( fifo );
 
         /* Dispatch */
-        STATEMACHINE_FlatDispatch( latest.state, latest.event );
+        STATEMACHINE_Dispatch( latest.state, latest.event );
     }
 }
 
@@ -127,18 +127,31 @@ static void FailureMessage(void)
     printf("\t-l\tLocation\n");
 }
 
+static void InitComms(comms_t * comms, settings_t * settings, msg_fifo_t * msg_fifo)
+{
+    memset(comms, 0x00, sizeof(comms_t));
+    
+    comms->ip = settings->comms.ip;
+    comms->port = settings->comms.port;
+    comms->fifo = msg_fifo;
+
+    Comms_Init(comms);
+}
+
 int main( int argc, char ** argv )
 {
-    static settings_t settings;
+    settings_t settings;
     daemon_fifo_t event_fifo;
     msg_fifo_t msg_fifo;
+    comms_t comms;
+    
     bool success = HandleArgs( argc, argv, &settings);
     
     GENERATE_EVENT_OBSERVERS( observer, SIGNALS );
     event_fifo.observer = observer;
 
     WelcomeMessage();
-    settings.comms.msg_fifo = &msg_fifo;
+    InitComms(&comms, &settings, &msg_fifo);
     
     (void)TimeStamp_Generate();
     Timer_Init();
@@ -146,7 +159,7 @@ int main( int argc, char ** argv )
     DaemonEvents_Init(&event_fifo);
     if( success )
     {
-        CommsSM_Init(&settings.comms, &event_fifo);
+        CommsSM_Init(&settings.comms, &comms, &event_fifo);
         //Daemon_Init(&settings.daemon, &event_fifo);
         Loop(&event_fifo);
     }
