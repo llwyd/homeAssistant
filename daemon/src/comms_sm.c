@@ -27,7 +27,7 @@ static daemon_fifo_t * event_fifo;
 static comms_callback_t comms_callback[NUM_COMMS_EVENTS] =
 {
     {"MQTT Message Received", Comms_MessageReceived, EVENT(MessageReceived)},
-    {"TCP Disconnect", Comms_Disconnected, EVENT(BrokerDisconnect)},
+    {"TCP Disconnect", Comms_Disconnected, EVENT(BrokerDisconnected)},
 };
 
 state_ret_t State_Connect( state_t * this, event_t s )
@@ -46,6 +46,7 @@ state_ret_t State_Connect( state_t * this, event_t s )
             if( Comms_Connect(&comms) )
             {
                 printf("\tTCP Connection successful\n");
+                DaemonEvents_BroadcastEvent(event_fifo, EVENT(TCPConnected));
                 ret = TRANSITION(this, STATE(Connected));
             }
             else

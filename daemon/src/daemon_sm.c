@@ -30,7 +30,7 @@
 #include "comms.h"
 #include "msg_fifo.h"
 #include "meta.h"
-
+/*
 #define SIGNALS(SIG ) \
     SIG( Tick ) \
     SIG( MessageReceived ) \
@@ -40,7 +40,7 @@
 
 GENERATE_SIGNALS( SIGNALS );
 GENERATE_SIGNAL_STRINGS( SIGNALS );
-
+*/
 DEFINE_STATE(Connect);
 DEFINE_STATE(MQTTConnect);
 DEFINE_STATE(Subscribe);

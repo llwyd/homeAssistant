@@ -69,6 +69,8 @@ add_executable( daemon.out
                 ../boilerplate/src/fifo_base.c
                 ../boilerplate/src/state.h
                 ../boilerplate/src/state.c
+                ../boilerplate/src/event_observer.c
+                ../boilerplate/src/event_observer.h
                 ../common/meta.h
                 )
 

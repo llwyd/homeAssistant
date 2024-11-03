@@ -13,6 +13,7 @@
 #include "daemon_sm.h"
 #include "comms_sm.h"
 #include "daemon_events.h"
+#include "event_observer.h"
 #include "fifo_base.h"
 #include "state.h"
 #include "mqtt.h"
@@ -131,15 +132,18 @@ int main( int argc, char ** argv )
     static settings_t settings;
     daemon_fifo_t event_fifo;
     msg_fifo_t msg_fifo;
+    bool success = HandleArgs( argc, argv, &settings);
+    
+    GENERATE_EVENT_OBSERVERS( observer, SIGNALS );
+    event_fifo.observer = observer;
 
     WelcomeMessage();
-    bool success = HandleArgs( argc, argv, &settings);
     settings.comms.msg_fifo = &msg_fifo;
     
-    DaemonEvents_Init(&event_fifo);
     (void)TimeStamp_Generate();
     Timer_Init();
-
+    
+    DaemonEvents_Init(&event_fifo);
     if( success )
     {
         CommsSM_Init(&settings.comms, &event_fifo);
