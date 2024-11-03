@@ -84,7 +84,6 @@ state_ret_t State_TCPConnect( state_t * this, event_t s )
             if( Comms_Connect(comms) )
             {
                 printf("\tTCP Connection successful\n");
-                DaemonEvents_BroadcastEvent(event_fifo, EVENT(TCPConnected));
                 ret = TRANSITION(this, STATE(MQTTConnect));
             }
             else
@@ -158,6 +157,9 @@ state_ret_t State_Connected( state_t * this, event_t s )
     switch( s )
     {
         case EVENT( Enter ):
+            DaemonEvents_BroadcastEvent(event_fifo, EVENT(BrokerConnected));
+            ret = HANDLED();
+            break;
         case EVENT( Exit ):
             ret = HANDLED();
             break;

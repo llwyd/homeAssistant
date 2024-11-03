@@ -160,7 +160,8 @@ int main( int argc, char ** argv )
     if( success )
     {
         CommsSM_Init(&settings.comms, &comms, &event_fifo);
-        //Daemon_Init(&settings.daemon, &event_fifo);
+        Daemon_Init(&settings.daemon, &comms, &event_fifo);
+        DaemonEvents_Subscribe(&event_fifo, Daemon_GetState(),EVENT(BrokerConnected));
         Loop(&event_fifo);
     }
     else

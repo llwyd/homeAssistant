@@ -33,7 +33,7 @@ typedef struct
 }
 daemon_settings_t;
 
-extern void Daemon_Init(daemon_settings_t * settings, daemon_fifo_t * fifo);
+extern void Daemon_Init(daemon_settings_t * settings, comms_t * tcp_comms, daemon_fifo_t * fifo);
 
 extern state_t * const Daemon_GetState(void);
 extern mqtt_t * const Daemon_GetMQTT(void);
