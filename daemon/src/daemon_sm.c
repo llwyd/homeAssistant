@@ -42,7 +42,6 @@ GENERATE_SIGNALS( SIGNALS );
 GENERATE_SIGNAL_STRINGS( SIGNALS );
 */
 DEFINE_STATE(AwaitingConnection);
-DEFINE_STATE(Subscribe);
 DEFINE_STATE(Idle);
 
 typedef struct
@@ -67,8 +66,6 @@ static daemon_state_t state_machine;
 static daemon_fifo_t * event_fifo;
 
 static char * client_name;
-static event_fifo_t events;
-static msg_fifo_t msg_fifo;
 static mqtt_t mqtt;
 
 static comms_t * comms;

@@ -24,13 +24,13 @@
 #include "comms.h"
 #include "msg_fifo.h"
 #include "meta.h"
+#include "weather_sm.h"
 
 typedef struct
 {
     daemon_settings_t daemon;
     comms_settings_t comms;
-    char * api_key;
-    char * location;
+    weather_settings_t weather;
     bool weather_enabled;
 }
 settings_t;
@@ -88,10 +88,10 @@ bool HandleArgs( int argc, char ** argv, settings_t * settings )
                 settings->comms.client_name = optarg;
                 break;
             case 'k':
-                settings->api_key = optarg;
+                settings->weather.api_key = optarg;
                 break;
             case 'l':
-                settings->location = optarg;
+                settings->weather.location = optarg;
                 break;
             default:
                 break;
@@ -102,8 +102,8 @@ bool HandleArgs( int argc, char ** argv, settings_t * settings )
                 (settings->daemon.broker_port != NULL) &&
                 (settings->daemon.client_name != NULL);
    
-    settings->weather_enabled = (settings->api_key != NULL) &&
-                                (settings->location != NULL);
+    settings->weather_enabled = (settings->weather.api_key != NULL) &&
+                                (settings->weather.location != NULL);
 
     return success;
 }
@@ -162,7 +162,9 @@ int main( int argc, char ** argv )
     {
         CommsSM_Init(&settings.comms, &comms, &event_fifo);
         Daemon_Init(&settings.daemon, &comms, &event_fifo);
+        WeatherSM_Init(&settings.weather, &comms, &event_fifo);
         DaemonEvents_Subscribe(&event_fifo, Daemon_GetState(),EVENT(BrokerConnected));
+        DaemonEvents_Subscribe(&event_fifo, WeatherSM_GetState(),EVENT(BrokerConnected));
         Loop(&event_fifo);
     }
     else

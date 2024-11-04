@@ -23,7 +23,17 @@
 #include "msg_fifo.h"
 #include "meta.h"
 #include "json.h"
+#include "daemon_events.h"
 
-extern state_t * Weather_Init(void);
+typedef struct
+{
+    char * api_key;
+    char * location;
+}
+weather_settings_t;
+
+extern void WeatherSM_Init(weather_settings_t * settings, comms_t * tcp_comms, daemon_fifo_t * fifo);
+extern state_t * const WeatherSM_GetState(void);
+extern char * WeatherSM_GetName(void);
 
 #endif /* WEATHER_H */

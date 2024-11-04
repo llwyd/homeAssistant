@@ -55,6 +55,9 @@ add_executable( daemon.out
                 ../common/msg_fifo.h
                 ../common/msg_fifo.c
                 src/daemon_sm.c
+                src/daemon_sm.h
+                src/weather_sm.c
+                src/weather_sm.h
                 src/comms_sm.c
                 src/comms_sm.h
                 src/timestamp.h
