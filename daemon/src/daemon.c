@@ -162,9 +162,12 @@ int main( int argc, char ** argv )
     {
         CommsSM_Init(&settings.comms, &comms, &event_fifo);
         Daemon_Init(&settings.daemon, &comms, &event_fifo);
-        WeatherSM_Init(&settings.weather, &comms, &event_fifo);
         DaemonEvents_Subscribe(&event_fifo, Daemon_GetState(),EVENT(BrokerConnected));
-        DaemonEvents_Subscribe(&event_fifo, WeatherSM_GetState(),EVENT(BrokerConnected));
+        if(settings.weather_enabled)
+        {
+            WeatherSM_Init(&settings.weather, &comms, &event_fifo);
+            DaemonEvents_Subscribe(&event_fifo, WeatherSM_GetState(),EVENT(BrokerConnected));
+        }
         Loop(&event_fifo);
     }
     else

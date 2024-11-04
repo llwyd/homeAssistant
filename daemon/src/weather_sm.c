@@ -1,5 +1,6 @@
 #include "weather_sm.h"
 #include "daemon_events.h"
+#include "weather.h"
 
 DEFINE_STATE(AwaitingConnection);
 DEFINE_STATE(Idle);
@@ -53,6 +54,7 @@ state_ret_t State_Idle( state_t * this, event_t s )
     {
         case EVENT( Enter ):
         case EVENT( Exit ):
+            Weather_Read();
             ret = HANDLED();
             break;
         case EVENT( UpdateHomepage ):
@@ -108,7 +110,9 @@ extern void WeatherSM_Init(weather_settings_t * settings, comms_t * tcp_comms, d
         .num_subs = 0U,
     };
     mqtt = mqtt_config;
-   
+  
+    Weather_Init(settings->api_key, settings->location);
+
     state_machine.state.state = STATE(AwaitingConnection);
     state_machine.retry_count = 0U;
 

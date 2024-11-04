@@ -1,5 +1,5 @@
-#ifndef WEATHER_H_
-#define WEATHER_H_
+#ifndef WEATHER_SM_H_
+#define WEATHER_SM_H_
 
 #include <errno.h>
 #include <inttypes.h>
@@ -36,4 +36,4 @@ extern void WeatherSM_Init(weather_settings_t * settings, comms_t * tcp_comms, d
 extern state_t * const WeatherSM_GetState(void);
 extern char * WeatherSM_GetName(void);
 
-#endif /* WEATHER_H */
+#endif /* WEATHER_SM_H */
