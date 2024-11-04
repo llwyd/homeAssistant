@@ -45,6 +45,7 @@ static void RefreshEvents( daemon_fifo_t * events )
 {
     CommsSM_RefreshEvents(events);
     Daemon_RefreshEvents(events);
+    WeatherSM_RefreshEvents(events);
 }
 
 static void Loop( daemon_fifo_t * fifo )

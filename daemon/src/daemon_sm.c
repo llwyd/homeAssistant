@@ -229,6 +229,9 @@ extern void Daemon_Init(daemon_settings_t * settings, comms_t * tcp_comms, daemo
 
     DaemonEvents_Enqueue(event_fifo, &state_machine.state, EVENT(Enter));
 
+    Timer_Init(&timer_1s);
+    Timer_Init(&timer_300s);
+    Timer_Init(&timer_500ms);
     printf("!---------------------------!\n");
     printf("!   Complete!               !\n");
     printf("!---------------------------!\n");

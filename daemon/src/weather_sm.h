@@ -35,5 +35,6 @@ weather_settings_t;
 extern void WeatherSM_Init(weather_settings_t * settings, comms_t * tcp_comms, daemon_fifo_t * fifo);
 extern state_t * const WeatherSM_GetState(void);
 extern char * WeatherSM_GetName(void);
+extern void WeatherSM_RefreshEvents( daemon_fifo_t * events );
 
 #endif /* WEATHER_SM_H */
