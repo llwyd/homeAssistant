@@ -58,10 +58,14 @@ add_executable( daemon.out
                 src/daemon_sm.h
                 src/weather_sm.c
                 src/weather_sm.h
+                src/weather.c
+                src/weather.h
                 src/comms_sm.c
                 src/comms_sm.h
                 src/timestamp.h
                 src/timestamp.c
+                src/json.c
+                src/json.h
                 src/comms.h
                 src/comms.c
                 ../common/events.h
