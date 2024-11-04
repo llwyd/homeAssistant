@@ -35,42 +35,42 @@ extern uint32_t Timer_TimeSinceStartMS(void)
     return delta32;
 }
 
-extern void Timer_Init(void)
+extern void Timer_Init(daemon_timer_t * const timer)
 {
     printf("Initialising timers\n");
     time(&start_time);
+
+    time(&timer->last_tick_s);
+    timespec_get( &timer->last_tick_ms, TIME_UTC );
 }
 
-extern bool Timer_Tick500ms(void)
+extern bool Timer_Tick500ms(daemon_timer_t * const timer)
 {
     bool timerElapsed = false;
     
-    static struct timespec current_tick;
-    static struct timespec last_tick;
+    struct timespec current_tick;
 
     timespec_get( &current_tick, TIME_UTC );
-    if( (unsigned long)( current_tick.tv_nsec - last_tick.tv_nsec ) >= 500000000UL )
+    if( (unsigned long)( current_tick.tv_nsec - timer->last_tick_ms.tv_nsec ) >= 500000000UL )
     {
-        last_tick = current_tick;
+        timer->last_tick_ms = current_tick;
         timerElapsed = true;
     }
 
     return timerElapsed;
 }
 
-extern bool Timer_Tick1s(void)
+extern bool Timer_Tick1s(daemon_timer_t * const timer)
 {
     const double period = 1.f;
-    static time_t last_tick;
 
-    return HasSecondsTimerElapsed(period, &last_tick);
+    return HasSecondsTimerElapsed(period, &timer->last_tick_s);
 }
 
-extern bool Timer_Tick60s(void)
+extern bool Timer_Tick300s(daemon_timer_t * const timer)
 {
-    const double period = 60.f;
-    static time_t last_tick;
+    const double period = 300.f;
 
-    return HasSecondsTimerElapsed(period, &last_tick);
+    return HasSecondsTimerElapsed(period, &timer->last_tick_s);
 }
 

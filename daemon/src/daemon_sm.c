@@ -30,27 +30,9 @@
 #include "comms.h"
 #include "msg_fifo.h"
 #include "meta.h"
-/*
-#define SIGNALS(SIG ) \
-    SIG( Tick ) \
-    SIG( MessageReceived ) \
-    SIG( Disconnect ) \
-    SIG( Heartbeat ) \
-    SIG( UpdateHomepage ) \
 
-GENERATE_SIGNALS( SIGNALS );
-GENERATE_SIGNAL_STRINGS( SIGNALS );
-*/
 DEFINE_STATE(AwaitingConnection);
 DEFINE_STATE(Idle);
-
-typedef struct
-{
-    char * name;
-    bool (*event_fn)(comms_t * const comms);
-    event_t event;
-}
-comms_callback_t;
 
 #define CONNECT_ATTEMPTS (5U)
 
@@ -75,6 +57,9 @@ void Heartbeat( void );
 static bool Send(uint8_t * buffer, uint16_t len);
 static bool Recv(uint8_t * buffer, uint16_t len);
 
+static daemon_timer_t timer_300s;
+static daemon_timer_t timer_1s;
+static daemon_timer_t timer_500ms;
 
 #define NUM_SUBS ( 1U )
 static mqtt_subs_t subs[NUM_SUBS] = 
@@ -83,11 +68,11 @@ static mqtt_subs_t subs[NUM_SUBS] =
 };
 
 #define NUM_EVENTS (3)
-static event_callback_t event_callback[NUM_EVENTS] =
+static timer_callback_t timer_callback[NUM_EVENTS] =
 {
-    {"Tick", Timer_Tick1s, EVENT(Tick)},
-    {"Heartbeat Led", Timer_Tick500ms, EVENT(Heartbeat)},
-    {"Homepage Update", Timer_Tick60s, EVENT(UpdateHomepage)},
+    {"Tick", &timer_1s, Timer_Tick1s, EVENT(Tick)},
+    {"Homepage Update", &timer_300s, Timer_Tick300s, EVENT(UpdateHomepage)},
+    {"Heartbeat Led", &timer_500ms, Timer_Tick500ms, EVENT(Heartbeat)},
 };
 
 state_ret_t State_AwaitingConnection( state_t * this, event_t s )
@@ -167,9 +152,9 @@ extern void Daemon_RefreshEvents( daemon_fifo_t * events )
 {
     for( int idx = 0; idx < NUM_EVENTS; idx++ )
     {
-        if( event_callback[idx].event_fn() )
+        if( timer_callback[idx].event_fn(timer_callback[idx].timer) )
         {
-            DaemonEvents_Enqueue( events, Daemon_GetState(), event_callback[idx].event );
+            DaemonEvents_Enqueue( events, Daemon_GetState(), timer_callback[idx].event );
         }
     }
 }

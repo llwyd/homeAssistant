@@ -155,7 +155,6 @@ int main( int argc, char ** argv )
     InitComms(&comms, &settings, &msg_fifo);
     
     (void)TimeStamp_Generate();
-    Timer_Init();
     
     DaemonEvents_Init(&event_fifo);
     if( success )
