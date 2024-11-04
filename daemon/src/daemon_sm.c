@@ -115,34 +115,6 @@ state_ret_t State_AwaitingConnection( state_t * this, event_t s )
 
 }
 
-state_ret_t State_Subscribe( state_t * this, event_t s )
-{
-    STATE_DEBUG( s );
-    state_ret_t ret = NO_PARENT(this);
-    switch( s )
-    {
-        case EVENT( Enter ):
-        case EVENT( Exit ):
-            ret = HANDLED();
-            break;
-        case EVENT( Disconnect ):
-            ret = TRANSITION(this, STATE(AwaitingConnection));
-            break;
-        case EVENT( Heartbeat ):
-            Heartbeat();
-            ret = HANDLED();
-            break;
-        case EVENT( Tick ):
-            ret = HANDLED();
-            break;
-        default:
-            break;
-    }
-
-    return ret;
-    
-}
-
 state_ret_t State_Idle( state_t * this, event_t s )
 {
     STATE_DEBUG( s );
@@ -196,15 +168,6 @@ state_ret_t State_Idle( state_t * this, event_t s )
 
 extern void Daemon_RefreshEvents( daemon_fifo_t * events )
 {
-    /*
-    for( int idx = 0; idx < NUM_COMMS_EVENTS; idx++ )
-    {
-        if( comms_callback[idx].event_fn(comms) )
-        {
-            DaemonEvents_Enqueue( events, Daemon_GetState(), comms_callback[idx].event );
-        }
-    }
-*/
     for( int idx = 0; idx < NUM_EVENTS; idx++ )
     {
         if( event_callback[idx].event_fn() )
