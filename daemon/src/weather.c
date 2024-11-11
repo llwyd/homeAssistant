@@ -2,8 +2,10 @@
 #include "comms.h"
 #include "msg_fifo.h"
 #include "json.h"
+
 #define SOCKET_BUFFER_LEN (2048U)
 #define API_PATH_LEN (128U)
+#define JSON_PACKET_SIZE (64U)
 
 static comms_t comms;
 static msg_fifo_t msg_fifo;
@@ -14,6 +16,11 @@ static char * port = "80";
 
 static uint8_t send_buffer[SOCKET_BUFFER_LEN];
 static uint8_t recv_buffer[SOCKET_BUFFER_LEN];
+static char json_packet[JSON_PACKET_SIZE];
+
+static float current_temp = 0.0f;
+static float current_hum = 0.0f;
+static bool measurement_valid = false;
 
 static void ExtractAndPrint(uint8_t * const buffer, char * keyword)
 {
@@ -24,6 +31,21 @@ static void ExtractAndPrint(uint8_t * const buffer, char * keyword)
     memset(text,0x00,32);
     JSON_LazyExtract(recv_buffer, text, keyword);
     printf("%s: %s\n",keyword, text);
+}
+
+static float ExtractFloat(uint8_t * const buffer, char * keyword)
+{
+    assert(buffer != NULL);
+    assert(keyword != NULL);
+
+    char text[32];
+    float ret = 0.0f;
+    memset(text,0x00,32);
+    JSON_LazyExtract(recv_buffer, text, keyword);
+    printf("%s: %s\n",keyword, text);
+
+    ret = atof(text);
+    return ret;
 }
 
 static void GetWeatherInfo(comms_t * const comms)
@@ -46,21 +68,23 @@ static void GetWeatherInfo(comms_t * const comms)
         if(Comms_Send(comms, send_buffer, req_len))
         {
             (void)Comms_Recv(comms, recv_buffer, SOCKET_BUFFER_LEN);
-            printf("\n%s\n\n", recv_buffer);
             ExtractAndPrint(recv_buffer, "description");
-            ExtractAndPrint(recv_buffer, "temp"); 
-            ExtractAndPrint(recv_buffer, "humidity"); 
+            current_temp = ExtractFloat(recv_buffer, "temp"); 
+            current_hum = ExtractFloat(recv_buffer, "humidity");
+            measurement_valid = true;
             Comms_Disconnect(comms);
         }
         else
         {
             printf("Failed to send\n");
+            measurement_valid = false;
             Comms_Disconnect(comms);
         }
     }
     else
     {
         printf("Failed to connect\n");
+        measurement_valid = false;
     }
     Comms_Disconnect(comms);
 }
@@ -90,5 +114,13 @@ extern float Weather_GetTemperature( void )
 
 extern char * Weather_GenerateJSON(void)
 {
+    memset(json_packet, 0x00, JSON_PACKET_SIZE);
+
+    snprintf(json_packet, JSON_PACKET_SIZE,
+            "{\"temperature\":%.1f,\"humidity\":%.1f,\"uptime_ms\":%u}",
+            current_temp,
+            current_hum,
+            0U);
+    return json_packet;
 }
 
