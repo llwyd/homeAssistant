@@ -26,6 +26,7 @@
     SIG( HashRequest ) \
     SIG( TCPRetryClose ) \
     SIG( AckReceived ) \
+    SIG( PCBInvalid ) \
 
 GENERATE_SIGNALS( SIGNALS );
 

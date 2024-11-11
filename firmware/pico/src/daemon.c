@@ -286,6 +286,7 @@ static state_ret_t State_TCPNotConnected( state_t * this, event_t s )
             ret = TRANSITION(this, STATE(MQTTNotConnected));
             break;
         }
+        case EVENT( PCBInvalid ):
         case EVENT( TCPDisconnected ):
         {
             Comms_Close();
@@ -317,6 +318,7 @@ static state_ret_t State_MQTTNotConnected( state_t * this, event_t s )
             ret = HANDLED();
             break;
         }
+        case EVENT( PCBInvalid ):
         case EVENT( TCPDisconnected ):
         {
             Comms_Close();
@@ -665,6 +667,7 @@ static state_ret_t State_Idle( state_t * this, event_t s )
             }
             break;
         }
+        case EVENT( PCBInvalid ):
         case EVENT( TCPDisconnected ):
         {
             Comms_Close();
@@ -759,6 +762,7 @@ static state_ret_t State_AwaitingAck( state_t * this, event_t s )
             ret = TRANSITION(this, STATE(Idle));
             break;
         }
+        case EVENT( PCBInvalid ):
         case EVENT( TCPDisconnected ):
         {
             Emitter_Destroy(node_state->retry_timer);
@@ -816,7 +820,7 @@ extern void Daemon_Run(void)
     critical_section_init_with_lock_num(&crit_msg_fifo, 3U);
     critical_section_init_with_lock_num(&crit_udp_fifo, 4U);
     
-//    Watchdog_Init();
+    Watchdog_Init();
     I2C_Init();
     Alarm_Init();
     Enviro_Init();
@@ -824,7 +828,7 @@ extern void Daemon_Run(void)
     Events_Init(&events);
     EEPROM_Read((uint8_t*)unique_id, EEPROM_ENTRY_SIZE, EEPROM_NAME);
     
-//    Watchdog_Kick();
+    Watchdog_Kick();
     Message_Init(&msg_fifo, &crit_msg_fifo);
     Message_Init(&udp_fifo, &crit_udp_fifo);
     Comms_Init(&msg_fifo, &crit_tcp);
@@ -845,7 +849,7 @@ extern void Daemon_Run(void)
     state_machine.ntp = &ntp;
     state_machine.crit = &crit;
 
-//    Watchdog_Kick();
+    Watchdog_Kick();
     STATEMACHINE_Init( &state_machine.state, STATE( WifiNotConnected ) );
 
     while( true )
@@ -859,7 +863,7 @@ extern void Daemon_Run(void)
         critical_section_exit(&crit_events);
         STATEMACHINE_Dispatch(&state_machine.state, e);
         //cyw43_arch_poll();
-//        Watchdog_Kick();
+        Watchdog_Kick();
     }
 
     /* Shouldn't get here! */

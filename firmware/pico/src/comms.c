@@ -181,6 +181,15 @@ extern bool Comms_Send( uint8_t * buffer, uint16_t len )
     {
         printf("\tFailed to write (%d)\n", (int16_t)err);
         success = false;
+        if(err == ERR_ARG)
+        {
+            Emitter_EmitEvent(EVENT(PCBInvalid));
+
+            /* This looks strange, but we dont want to kick off the retry timer
+             * as we are going to nuke the connection anyway so return true
+             */
+            success = true;
+        }
         goto cleanup;
     }
     
