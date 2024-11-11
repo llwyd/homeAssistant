@@ -16,6 +16,7 @@
 
 void Weather_Init( char * key, char * loc );
 void Weather_Read( void );
+extern bool Weather_DataValid(void);
 extern float Weather_GetTemperature( void );
 extern char * Weather_GenerateJSON(void);
 

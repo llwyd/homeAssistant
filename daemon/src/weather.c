@@ -6,6 +6,7 @@
 #define SOCKET_BUFFER_LEN (2048U)
 #define API_PATH_LEN (128U)
 #define JSON_PACKET_SIZE (64U)
+#define ABSOLUTE_ZERO (-273.15f)
 
 static comms_t comms;
 static msg_fifo_t msg_fifo;
@@ -69,7 +70,8 @@ static void GetWeatherInfo(comms_t * const comms)
         {
             (void)Comms_Recv(comms, recv_buffer, SOCKET_BUFFER_LEN);
             ExtractAndPrint(recv_buffer, "description");
-            current_temp = ExtractFloat(recv_buffer, "temp"); 
+            current_temp = ExtractFloat(recv_buffer, "temp");
+            current_temp += ABSOLUTE_ZERO;
             current_hum = ExtractFloat(recv_buffer, "humidity");
             measurement_valid = true;
             Comms_Disconnect(comms);
@@ -122,5 +124,10 @@ extern char * Weather_GenerateJSON(void)
             current_hum,
             0U);
     return json_packet;
+}
+
+extern bool Weather_DataValid(void)
+{
+    return measurement_valid;
 }
 

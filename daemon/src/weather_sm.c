@@ -65,22 +65,23 @@ state_ret_t State_Idle( state_t * this, event_t s )
     {
         case EVENT( Enter ):
         case EVENT( Exit ):
-            Weather_Read();
             ret = HANDLED();
             break;
         case EVENT( UpdateHomepage ):
         {
-            /*
-            char * json = Sensor_GenerateJSON();
-            if( MQTT_Publish(&mqtt, "summary", json))
+            Weather_Read();
+            if(Weather_DataValid())
             {
-                ret = HANDLED();
+                char * json = Weather_GenerateJSON();
+                if( MQTT_Publish(&mqtt, "summary", json))
+                {
+                    ret = HANDLED();
+                }
+                else
+                {
+                    ret = TRANSITION(this, STATE(AwaitingConnection) );
+                }
             }
-            else
-            {
-                ret = TRANSITION(this, STATE(AwaitingConnection) );
-            }
-            */
             ret = HANDLED();
             break;
         }
