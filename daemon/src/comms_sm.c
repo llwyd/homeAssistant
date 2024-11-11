@@ -37,12 +37,24 @@ static comms_state_t state_machine;
 static daemon_fifo_t * event_fifo;
 static mqtt_t mqtt;
 
+static bool CommsDisconnected(comms_t * const comms);
+
 #define NUM_COMMS_EVENTS (2)
 static comms_callback_t comms_callback[NUM_COMMS_EVENTS] =
 {
     {"MQTT Message Received", Comms_MessageReceived, EVENT(MessageReceived)},
-    {"TCP Disconnect", Comms_Disconnected, EVENT(Disconnect)},
+    {"TCP Disconnect", CommsDisconnected, EVENT(Disconnect)},
 };
+
+static bool CommsDisconnected(comms_t * const comms)
+{
+    bool ret = Comms_Disconnected(comms);
+    if(ret)
+    {
+            DaemonEvents_BroadcastEvent(event_fifo, EVENT(BrokerDisconnected));
+    }
+    return ret;
+}
 
 void BlankCallback(mqtt_data_t * data)
 {
@@ -141,6 +153,7 @@ state_ret_t State_MQTTConnect( state_t * this, event_t s )
 
             break;
         case EVENT( Disconnect ):
+
             ret = TRANSITION(this, STATE(TCPConnect));
             break;
         default:
@@ -183,6 +196,7 @@ state_ret_t State_Connected( state_t * this, event_t s )
             }
             break;
         case EVENT( Disconnect ):
+            DaemonEvents_BroadcastEvent(event_fifo, EVENT(BrokerDisconnected));
             ret = TRANSITION(this, STATE(TCPConnect));
             break;
         default:

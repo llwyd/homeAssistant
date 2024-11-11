@@ -134,7 +134,7 @@ state_ret_t State_Idle( state_t * this, event_t s )
                 }
             }
             break;
-        case EVENT( Disconnect ):
+        case EVENT( BrokerDisconnected ):
             ret = TRANSITION(this, STATE(AwaitingConnection));
             break;
         case EVENT( Heartbeat ):

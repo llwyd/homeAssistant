@@ -85,7 +85,7 @@ state_ret_t State_Idle( state_t * this, event_t s )
             ret = HANDLED();
             break;
         }
-        case EVENT( Disconnect ):
+        case EVENT( BrokerDisconnected ):
             ret = TRANSITION(this, STATE(AwaitingConnection));
             break;
         default:
