@@ -129,7 +129,7 @@ bool Comms_Recv(comms_t * const comms, uint8_t * buffer, uint16_t len)
     int rcv = recv( comms->sock, buffer, len, 0U);
     if( rcv < 0 )
     {
-        printf("\tError Sending Data\n");
+        printf("\tError Receiving Data\n");
         ret = false;
     }
     else if( rcv == 0 )
@@ -152,7 +152,7 @@ bool Comms_RecvToFifo(comms_t * const comms)
     int rcv = recv( comms->sock, recv_buffer, BUFFER_SIZE, 0U);
     if( rcv < 0 )
     {
-        printf("\tError Sending Data\n");
+        printf("\tError Receiving Data to fifo\n");
         ret = false;
     }
     else if( rcv == 0 )
