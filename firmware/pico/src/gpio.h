@@ -10,11 +10,14 @@
 #include "pico/binary_info.h"
 
 #define CONFIG_PIN (13U)
-#define INT1_PIN (14U)
-#define INT2_PIN (15U)
+#define INT1_PIN (18U)
+#define INT2_PIN (19U)
 #define SDA_PIN (16U)
 #define SCL_PIN (17U)
-#define WRITE_PIN ( 18U )
+#define WRITE_PIN ( 27U )
+
+#define GPIO_A_PIN (8U)
+#define GPIO_B_PIN (9U)
 
 extern void GPIO_Init(void);
 
