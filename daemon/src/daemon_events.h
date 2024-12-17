@@ -23,6 +23,7 @@
     SIG( BrokerDisconnected ) \
     SIG( MessageReceived ) \
     SIG( Disconnect ) \
+    SIG( RetryConnect ) \
 
 GENERATE_SIGNALS( SIGNALS );
 GENERATE_SIGNAL_STRINGS( SIGNALS );

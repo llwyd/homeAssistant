@@ -74,13 +74,13 @@ static void GetWeatherInfo(comms_t * const comms)
             current_temp += ABSOLUTE_ZERO;
             current_hum = ExtractFloat(recv_buffer, "humidity");
             measurement_valid = true;
-            Comms_Disconnect(comms);
+            Comms_Close(comms);
         }
         else
         {
             printf("Failed to send\n");
             measurement_valid = false;
-            Comms_Disconnect(comms);
+            Comms_Close(comms);
         }
     }
     else
@@ -88,7 +88,7 @@ static void GetWeatherInfo(comms_t * const comms)
         printf("Failed to connect\n");
         measurement_valid = false;
     }
-    Comms_Disconnect(comms);
+    Comms_Close(comms);
 }
 
 void Weather_Init( char * key, char * loc )

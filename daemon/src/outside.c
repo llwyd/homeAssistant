@@ -69,19 +69,19 @@ static void GetWeatherInfo(comms_t * const comms)
             ExtractAndPrint(recv_buffer, "description");
             ExtractAndPrint(recv_buffer, "temp"); 
             ExtractAndPrint(recv_buffer, "humidity"); 
-            Comms_Disconnect(comms);
+            Comms_Close(comms);
         }
         else
         {
             printf("Failed to send\n");
-            Comms_Disconnect(comms);
+            Comms_Close(comms);
         }
     }
     else
     {
         printf("Failed to connect\n");
     }
-    Comms_Disconnect(comms);
+    Comms_Close(comms);
 }
 
 bool Init( int argc, char ** argv )

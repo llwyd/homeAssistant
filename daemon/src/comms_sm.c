@@ -90,6 +90,7 @@ state_ret_t State_TCPConnect( state_t * this, event_t s )
 
     switch( s )
     {
+        case EVENT( RetryConnect ):
         case EVENT( Enter ):
         {
             state->retry_count = 0U;
@@ -102,6 +103,13 @@ state_ret_t State_TCPConnect( state_t * this, event_t s )
             {
                 ret = HANDLED();
             }
+            break;
+        }
+        case EVENT( Disconnect ):
+        {
+            Comms_Close(comms);
+            DaemonEvents_Enqueue(event_fifo, &state_machine.state, EVENT(RetryConnect));
+            ret = HANDLED();
             break;
         }
         case EVENT( Exit ):
@@ -153,7 +161,7 @@ state_ret_t State_MQTTConnect( state_t * this, event_t s )
 
             break;
         case EVENT( Disconnect ):
-
+            Comms_Close(comms);
             ret = TRANSITION(this, STATE(TCPConnect));
             break;
         default:
@@ -192,10 +200,12 @@ state_ret_t State_Connected( state_t * this, event_t s )
             }
             else
             {
+                Comms_Close(comms);
                 ret = TRANSITION(this, STATE(TCPConnect) );
             }
             break;
         case EVENT( Disconnect ):
+            Comms_Close(comms);
             DaemonEvents_BroadcastEvent(event_fifo, EVENT(BrokerDisconnected));
             ret = TRANSITION(this, STATE(TCPConnect));
             break;

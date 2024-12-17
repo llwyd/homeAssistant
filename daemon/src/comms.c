@@ -51,7 +51,8 @@ bool Comms_Connect(comms_t * const comms)
         comms->sock = socket( servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
         if( comms->sock < 0 )
         {
-            printf("Error creating socket\n");
+            printf("Error creating socket (%d)\n", comms->sock);
+            perror("Error:");
             ret = false;
         }
         else
@@ -60,7 +61,8 @@ bool Comms_Connect(comms_t * const comms)
             int c = connect( comms->sock, servinfo->ai_addr, servinfo->ai_addrlen);
             if( c < 0 )
             {
-                printf("\tConnection Failed\n");
+                printf("\tConnection Failed (%d)\n", c);
+                perror("Error:");
                 ret = false;
             }
             else
@@ -112,6 +114,7 @@ bool Comms_Send(comms_t * const comms, uint8_t * buffer, uint16_t len)
     if( snd < 0 )
     {
         printf("\t Error Sending Data\n");
+        perror("Error:");
         ret = false;
     }
     else
@@ -129,7 +132,7 @@ bool Comms_Recv(comms_t * const comms, uint8_t * buffer, uint16_t len)
     int rcv = recv( comms->sock, buffer, len, 0U);
     if( rcv < 0 )
     {
-        printf("\tError Sending Data\n");
+        printf("\tError Receiving Data\n");
         ret = false;
     }
     else if( rcv == 0 )
@@ -152,7 +155,8 @@ bool Comms_RecvToFifo(comms_t * const comms)
     int rcv = recv( comms->sock, recv_buffer, BUFFER_SIZE, 0U);
     if( rcv < 0 )
     {
-        printf("\tError Sending Data\n");
+        printf("\tError Receiving Data to FIFO\n");
+        perror("Error:");
         ret = false;
     }
     else if( rcv == 0 )
@@ -180,7 +184,7 @@ bool Comms_RecvToFifo(comms_t * const comms)
     return ret;
 }
 
-void Comms_Disconnect(comms_t * const comms)
+void Comms_Close(comms_t * comms)
 {
     close(comms->sock);
 }

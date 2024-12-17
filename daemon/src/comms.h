@@ -22,7 +22,7 @@ comms_t;
 extern char * Comms_GetLatestMessage(void);
 void Comms_Init(const comms_t * const comms);
 bool Comms_Connect(comms_t * const comms);
-void Comms_Disconnect(comms_t * const comms);
+void Comms_Close(comms_t * comms);
 
 extern bool Comms_MessageReceived(comms_t * const comms);
 extern bool Comms_Disconnected(comms_t * const comms);
